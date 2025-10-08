@@ -19,25 +19,47 @@ body {
     margin: 0;
     padding-top: 0;
     box-sizing: border-box;
-    overflow-y: scroll; /* Permite el desplazamiento de toda la página */
+    overflow-x: hidden; /* Oculta el scroll horizontal */
+}
+
+/* -------------------- CONTENEDOR PRINCIPAL -------------------- */
+.main-content-wrapper {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-left: 0; /* Por defecto, sin barra lateral visible */
+    transition: padding-left 0.3s ease;
+}
+
+.main-content-wrapper.sidebar-open {
+    padding-left: 280px; /* Espacio para la barra lateral */
 }
 
 .container {
-    margin: 0;
     max-width: 900px; 
     flex-grow: 1;
+    width: 100%;
     padding: 0 20px 150px 20px; /* Padding inferior para el área de búsqueda fija */
 }
 
-/* -------------------- BARRA LATERAL (HISTORIAL) -------------------- */
+/* -------------------- BARRA LATERAL (HISTORIAL) - MENU SLIDER -------------------- */
 .sidebar {
     width: 280px;
-    background-color: #242424; /* Tono más oscuro que el fondo principal */
-    min-height: 100vh;
+    background-color: #242424; 
+    height: 100vh;
     padding: 10px;
     box-shadow: 2px 0 5px rgba(0, 0, 0, 0.5);
-    position: sticky;
+    position: fixed;
     top: 0;
+    left: 0;
+    z-index: 1050; /* Por encima de todo */
+    transform: translateX(-100%); /* Oculto por defecto */
+    transition: transform 0.3s ease;
+}
+
+.sidebar.open {
+    transform: translateX(0); /* Muestra la barra */
 }
 
 .history-list {
@@ -46,6 +68,8 @@ body {
 }
 
 .new-chat-btn {
+    display: flex;
+    align-items: center;
     background-color: #3b3b3b;
     color: var(--text-color);
     padding: 10px 15px;
@@ -54,6 +78,7 @@ body {
     cursor: pointer;
     font-weight: 500;
     text-align: left;
+    gap: 8px;
 }
 
 .history-item {
@@ -71,6 +96,31 @@ body {
 .history-item:hover, .history-item.active {
     background-color: #3b3b3b;
 }
+
+/* --- BOTÓN DE MENÚ (3 BARRAS) --- */
+.menu-toggle {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    background: transparent;
+    border: none;
+    color: var(--text-color);
+    font-size: 24px;
+    cursor: pointer;
+    z-index: 1100; /* Siempre visible */
+    padding: 10px;
+    transition: left 0.3s ease;
+}
+
+.menu-toggle.sidebar-open {
+    left: 290px; /* Se mueve para el botón de cerrar */
+}
+/* Estilo del ícono del menú (si usas SVG o fuente) */
+.menu-toggle svg {
+    width: 24px;
+    height: 24px;
+}
+
 
 /* -------------------- TÍTULO Y VENTANA DE CHAT -------------------- */
 
@@ -108,21 +158,25 @@ body {
 }
 
 .bubble-user {
-    background-color: #4a4a4a; /* Gris claro para el usuario */
+    background-color: #4a4a4a; 
     color: var(--text-color);
     margin-left: auto;
     border-bottom-right-radius: 4px;
 }
 
 .bubble-ia {
-    background-color: #242424; /* Fondo del chat para la IA */
+    background-color: #242424; 
     color: var(--text-color);
     margin-right: auto;
     border-bottom-left-radius: 4px;
     text-align: left;
 }
 
-/* Mensaje de Detención (Aparece fuera de la burbuja) */
+.stop-notice-container {
+    width: 70%; /* Alinea el aviso con el tamaño de la burbuja IA */
+    margin-right: auto;
+}
+
 .stop-notice {
     color: #b0b0b0;
     font-weight: 400;
@@ -130,17 +184,88 @@ body {
     display: flex;
     align-items: center;
     font-size: 14px;
-    margin-left: 20px; /* Alineación a la izquierda */
+    margin-left: 20px; 
 }
 
 .stop-icon {
     width: 20px;
     height: 20px;
     margin-right: 5px;
-    filter: drop-shadow(0 0 5px #4285F4); /* Para darle el brillo azul */
+    filter: drop-shadow(0 0 5px #4285F4); 
 }
 
-/* -------------------- BARRA DE ACCIONES -------------------- */
+/* --- ESTILOS PARA LAS FUENTES CONSULTADAS (NUEVO) --- */
+.sources-container {
+    margin-bottom: 15px; /* Espacio entre fuentes y texto */
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.source-item {
+    background-color: #3b3b3b;
+    color: var(--text-color);
+    padding: 4px 10px;
+    border-radius: 16px;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: background-color 0.2s;
+}
+
+.source-item:hover {
+    background-color: #4a4a4a;
+}
+
+.source-icon {
+    width: 14px;
+    height: 14px;
+    margin-right: 5px;
+    /* Simulación de un icono de página/web */
+}
+
+.source-dropdown-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-color);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 0 5px;
+}
+
+.source-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: #3b3b3b;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    z-index: 1003;
+    padding: 8px;
+    min-width: 250px;
+    display: none;
+}
+
+.source-link {
+    display: block;
+    color: var(--text-color);
+    text-decoration: none;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.source-link:hover {
+    background-color: #4a4a4a;
+}
+
+
+/* -------------------- BARRA DE ACCIONES (Mantener) -------------------- */
 
 .ia-actions {
     display: flex;
@@ -210,7 +335,7 @@ body {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
     z-index: 1002;
     padding: 5px 0;
-    min-width: 180px; /* Ancho para "Volver a escuchar TTS" */
+    min-width: 180px; 
     display: none; 
 }
 
@@ -234,14 +359,18 @@ body {
 .search-section {
     position: fixed;
     bottom: 0;
-    left: 280px; 
+    left: 0; 
     right: 0;
     padding: 20px 30px;
     background-color: var(--bg-color);
     box-shadow: 0 -5px 10px rgba(0, 0, 0, 0.5);
     text-align: center;
     z-index: 1000;
+    /* Ajuste para que la barra de búsqueda esté centrada respecto al área de contenido */
+    max-width: calc(900px + 60px); 
+    margin: 0 auto;
 }
+
 .search-group {
     max-width: 800px;
     display: flex;
@@ -249,9 +378,12 @@ body {
     background-color: var(--surface-color);
     border-radius: 30px;
     padding: 10px 20px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+    box-shadow: none; /* Eliminar sombra del grupo si el fondo ya tiene */
+    border: 1px solid transparent; /* Necesario para el foco visual */
     margin: 0 auto;
 }
+
+/* ESTILO CLAVE: ELIMINAR LÍNEA DIVISORIA */
 #searchInput {
     flex-grow: 1;
     border: none;
@@ -260,7 +392,15 @@ body {
     font-size: 18px;
     padding: 8px 10px;
     outline: none;
+    /* Simulación de bloque transparente: el fondo lo da el .search-group */
 }
+
+/* Estilo para simular el foco */
+.search-group:focus-within {
+    /* Aquí puedes poner un borde sutil si lo deseas */
+    border-color: #4a4a4a; 
+}
+
 .voice-btn, #searchBtn {
     background: transparent;
     border: none;
@@ -271,6 +411,7 @@ body {
 }
 .voice-btn.listening { color: var(--error-color); }
 .search-icon { color: var(--accent-color); width: 24px; height: 24px;}
+
 
 /* --- UTILIDADES --- */
 .hidden {
