@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ============================================================
     // 1. ELEMENTOS DEL DOM
     // ============================================================
+    // ... (Elementos del DOM se mantienen iguales) ...
     const sidebar = document.getElementById('sidebar');
     const menuToggle = document.getElementById('menuToggle');
     const sidebarOptionsBtn = document.getElementById('sidebarOptionsBtn');
@@ -56,20 +57,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const synth = window.speechSynthesis;
 
     // ============================================================
-    // 3. FUNCIONES DE LECTURA DE VOZ (TTS)
+    // 3. BASE DE CONOCIMIENTO LOCAL SIMULADA
+    // -- ¡ELIMINADA! El procesamiento ahora es responsabilidad de app.py --
     // ============================================================
 
+
+    // ============================================================
+    // 4. FUNCIONES DE LECTURA DE VOZ (TTS)
+    // ============================================================
+
+    // ... (Las funciones TTS se mantienen iguales) ...
     function startTTS(text) {
         if (!synth) {
             console.warn("Tu navegador no soporta la API de Web Speech (TTS).");
             return;
         }
-
-        stopTTS(); // Detiene cualquier lectura previa
-        
+        stopTTS();
         currentUtterance = new SpeechSynthesisUtterance(text);
         
-        // Configuración de la voz (Busca voz en español si está disponible)
         synth.onvoiceschanged = () => {
             const voices = synth.getVoices();
             const esVoice = voices.find(voice => voice.lang.startsWith('es-'));
@@ -78,7 +83,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
 
-        // Si las voces ya están cargadas, busca inmediatamente
         if (synth.getVoices().length > 0) {
             const voices = synth.getVoices();
             const esVoice = voices.find(voice => voice.lang.startsWith('es-'));
@@ -132,15 +136,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // ============================================================
-    // 4. FUNCIONES DE MANEJO DE VISTAS
+    // 5. FUNCIONES DE MANEJO DE VISTAS
     // ============================================================
 
+    // ... (El resto de funciones de vista se mantienen iguales) ...
     function toggleSidebar() {
         sidebar.classList.toggle('open');
-        // Mueve la barra de búsqueda y el botón flotante si el sidebar está abierto/cerrado
         mainContentWrapper.classList.toggle('sidebar-open');
         document.getElementById('searchSection').style.left = sidebar.classList.contains('open') ? 'var(--sidebar-width)' : '0';
-        // En móvil, la barra flotante queda fija a la izquierda (CSS se encarga de esto)
     }
 
     function loadHistory() {
@@ -196,7 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         chatWindow.innerHTML = '';
-        stopTTS(); // Detener TTS al cambiar de chat
+        stopTTS();
         
         if (!chat || chat.messages.length === 0) {
             chatWindow.innerHTML = `<h1 class="main-title">Hola, <span class="user-name">YouTuber pacure</span></h1>`;
@@ -214,11 +217,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const messageDiv = document.createElement('div');
         messageDiv.className = `chat-message chat-${msg.type}`;
 
-        // 1. Avatar (SOLO para mensajes IA)
         if (msg.type === 'ia') {
             const avatarDiv = document.createElement('div');
             avatarDiv.className = 'ia-avatar';
-            // Usa el icono estático que indicaste
             avatarDiv.innerHTML = `<img src="/static/imang/imagres.ico" alt="PACURE IA Icon">`;
             messageDiv.appendChild(avatarDiv);
         }
@@ -229,17 +230,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (msg.type === 'ia') {
             
-            // Lógica para el Reproductor de Música (si existe)
             if (msg.musicUrl) {
                 appendMusicPlayer(msg.musicUrl, messageDiv);
             }
             
-            // Lógica para mostrar imagen (simulada)
             if (msg.imageTopic) {
                 fetchAndDisplayImage(msg.imageTopic, messageDiv); 
             }
             
-            // LÓGICA DE TTS EN LA RESPUESTA
             const ttsControlsDiv = document.createElement('div');
             ttsControlsDiv.className = 'tts-controls';
             
@@ -251,7 +249,6 @@ document.addEventListener('DOMContentLoaded', () => {
             messageDiv.appendChild(ttsControlsDiv);
 
 
-            // Lógica para mostrar Fuentes Consultadas
             if (msg.sources && msg.sources.length > 0) {
                 const sourcesDiv = document.createElement('div');
                 sourcesDiv.className = 'ia-sources';
@@ -265,7 +262,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 messageDiv.appendChild(sourcesDiv);
             }
             
-            // Simulación de acciones de IA (Botones de Reacción)
             const actionsDiv = document.createElement('div');
             actionsDiv.className = 'ia-actions';
             actionsDiv.innerHTML = `
@@ -277,7 +273,6 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             messageDiv.appendChild(actionsDiv);
             
-            // INICIA AUTOMÁTICAMENTE LA LECTURA DE LA NUEVA RESPUESTA
             startTTS(msg.text); 
         }
 
@@ -298,6 +293,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function fetchAndDisplayImage(topic, messageContainer) {
+        // En un entorno real, la URL de la imagen también vendría del backend.
         const imageUrl = topic.toLowerCase().includes('marketing') 
             ? "https://media.giphy.com/media/l4FGyFh1q5QO1xVp6/giphy.gif"
             : "https://via.placeholder.com/300x200.png?text=Imagen+relacionada+con+" + encodeURIComponent(topic); 
@@ -310,12 +306,13 @@ document.addEventListener('DOMContentLoaded', () => {
         messageContainer.appendChild(imageElement);
     }
 
-    // Envío de la consulta (REAL)
+
+    // Envío de la consulta (MODIFICADA PARA LLAMAR A FLASK)
     async function handleNewQuery() {
         const query = searchInput.value.trim();
         if (!query) return;
 
-        // 1. Detener TTS al enviar nueva consulta
+        // 1. Detener TTS
         stopTTS();
         
         // 2. Recolección de archivos adjuntos (FormData)
@@ -327,7 +324,6 @@ document.addEventListener('DOMContentLoaded', () => {
             for (const file of multiFileInput.files) {
                 // Adjunta el archivo real para el backend de Flask
                 formData.append('files', file); 
-                // Guarda info simple para el frontend (historial)
                 filesInfo.push({ name: file.name, type: file.type, size: file.size }); 
             }
         }
@@ -345,15 +341,13 @@ document.addEventListener('DOMContentLoaded', () => {
         // 4. Agrega el mensaje del usuario
         chatToUpdate.messages.push({ type: 'user', text: query, files: filesInfo });
         
-        // 5. Muestra mensaje de "escribiendo"
-        const typingMessage = { type: 'ia', text: "PACURE IA está escribiendo... 🤖" };
+        // 5. Muestra mensaje de "buscando y analizando"
+        const typingMessage = { type: 'ia', text: "PACURE IA está buscando y analizando fuentes... 🔎" };
         chatToUpdate.messages.push(typingMessage);
         loadChat(chatToUpdate.id);
         
-        // 6. Llama al backend Flask (SIMULADO)
+        // 6. Llama al backend Flask
         try {
-            // Nota: En un entorno real, descomentarías la llamada fetch y adaptarías la simulación
-            /*
             const response = await fetch('/api/chat', {
                 method: 'POST',
                 body: formData 
@@ -363,35 +357,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             
-            const data = await response.json();
-            */
-
-            // SIMULACIÓN DE RESPUESTA REAL
-            await new Promise(resolve => setTimeout(resolve, 1500)); // Simula tiempo de respuesta
-            const data = {
-                text: `¡Claro que sí! Tu consulta sobre "${query.substring(0, 20)}..." ha sido procesada. Como creador de contenido, te recomiendo enfocarte en la consistencia de tu marca y la interacción con tu audiencia.`,
-                imageTopic: query.includes('música') ? undefined : 'contenido de video',
-                sources: ["google.com", "pacureia.dev"],
-                musicUrl: query.includes('música') ? '/static/music_output/music_simulado.mp3' : undefined
-            };
-            // FIN SIMULACIÓN
-
+            const iaData = await response.json();
             
             // 7. Reemplaza el mensaje de tipeo con la respuesta real
             chatToUpdate.messages.pop(); 
             
             chatToUpdate.messages.push({ 
                 type: 'ia', 
-                text: data.text,
-                imageTopic: data.imageTopic,
-                sources: data.sources,
-                musicUrl: data.musicUrl 
+                text: iaData.text,
+                imageTopic: iaData.imageTopic,
+                sources: iaData.sources,
+                musicUrl: iaData.musicUrl 
             });
             
         } catch (error) {
-            console.error("Error al comunicarse con la IA:", error);
+            console.error("Error al comunicarse con el servidor (Flask):", error);
             chatToUpdate.messages.pop(); 
-            chatToUpdate.messages.push({ type: 'ia', text: `Lo siento, el backend falló. Error: ${error.message}. Asegúrate de que Flask esté corriendo. 😥` });
+            chatToUpdate.messages.push({ 
+                type: 'ia', 
+                text: `Lo siento, el servidor PACURE IA falló al procesar tu solicitud. Error: ${error.message}. Asegúrate de que Flask esté corriendo y la ruta /api/chat sea accesible. 😥` 
+            });
         }
         
         // 8. Recarga la vista y limpia
@@ -408,13 +393,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ============================================================
-    // 5. MANEJO DE EVENTOS DEL DOM
+    // 6. MANEJO DE EVENTOS DEL DOM
     // ============================================================
 
+    // ... (El manejo de eventos se mantiene igual) ...
     menuToggle.addEventListener('click', toggleSidebar);
     sidebarOptionsBtn.addEventListener('click', toggleSidebar); 
     
-    // Manejo del botón flotante de TTS
     ttsFloatingBtn.addEventListener('click', () => {
         if (isReading) {
             pauseTTS();
@@ -479,7 +464,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // Manejo de las opciones del menú Herramientas
     toolsMenu.addEventListener('click', (e) => {
         const option = e.target.closest('.tool-option');
         if (!option) return;
@@ -533,7 +517,7 @@ document.addEventListener('DOMContentLoaded', () => {
     removeImageBtn.addEventListener('click', clearFileInput);
     
     // ============================================================
-    // 6. INICIALIZACIÓN
+    // 7. INICIALIZACIÓN
     // ============================================================
     loadHistory(); 
 });
