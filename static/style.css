@@ -1,163 +1,87 @@
-/* ========================================================================= */
-/* 1. VARIABLES GLOBALES Y RESET                                             */
-/* ========================================================================= */
-:root {
-    --surface-color: #242424; /* Fondo principal */
-    --surface-color-dark: #1e1e1e; /* Barra lateral */
-    --hover-color: #333333;
-    --text-color: #ffffff;
-    --text-color-secondary: #aaaaaa;
-    --accent-color: #5599ff; /* Azul brillante */
-    --input-color: #363636; /* Fondo del campo de búsqueda */
-    --max-content-width: 900px;
-    --sidebar-width: 280px;
-    --search-height-padding: 150px; 
-}
+/* --- ESTILOS PARA LA LECTURA DE VOZ (TTS) --- */
 
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
-
-body {
-    font-family: 'Roboto', sans-serif;
-    background-color: var(--surface-color);
-    color: var(--text-color);
-    display: flex;
-    height: 100vh;
-    overflow: hidden;
-}
-
-/* ========================================================================= */
-/* 2. LAYOUT PRINCIPAL Y CABECERA (HEADER)                                   */
-/* ========================================================================= */
-
-.main-content-wrapper {
-    flex-grow: 1; 
+/* Contenedor del avatar de la IA con el icono */
+.chat-message.chat-ia {
+    /* Asegura que el contenido (incluyendo el avatar) esté correctamente alineado */
     display: flex;
     flex-direction: column;
-    padding-top: 20px;
-    height: 100vh;
-    overflow-y: auto; 
-    padding-bottom: var(--search-height-padding); 
-    transition: margin-left 0.3s ease-in-out;
+    align-items: flex-start;
+    margin-bottom: 20px;
 }
 
-.chat-header {
-    width: 100%;
-    max-width: var(--max-content-width);
-    margin: 0 auto;
+/* Avatar de la IA: el círculo con el icono */
+.ia-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: #313337; /* Fondo oscuro similar a la interfaz */
     display: flex;
-    justify-content: flex-end; 
-    padding: 10px 20px;
-    position: sticky; /* Fija el encabezado */
-    top: 0;
-    z-index: 5;
-    background-color: var(--surface-color); 
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 10px; /* Separación del texto */
+    padding: 2px;
 }
 
-.https-ai-btn {
+.ia-avatar img {
+    width: 24px; /* Tamaño del icono .ico */
+    height: 24px;
+}
+
+/* Controles de TTS dentro de la respuesta */
+.tts-controls {
+    margin-top: 10px;
     display: flex;
     align-items: center;
-    gap: 8px;
-    background-color: var(--input-color);
-    color: var(--text-color);
-    border: 1px solid var(--hover-color);
-    padding: 10px 15px;
-    border-radius: 20px;
-    cursor: pointer;
-    font-weight: 500;
-    transition: background-color 0.15s;
-}
-
-.https-ai-btn:hover {
-    background-color: var(--hover-color);
-    color: var(--accent-color);
-}
-
-.https-ai-btn svg {
-    color: var(--accent-color);
-}
-
-.container {
-    max-width: var(--max-content-width);
-    width: 100%;
-    margin: 0 auto; 
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    padding-top: 20px; /* Separación después del header */
-}
-
-.main-title {
-    color: var(--accent-color); 
-    text-align: center;
-    font-size: 3em;
-    font-weight: 500;
-    margin-top: 15vh;
-    flex-shrink: 0; 
-}
-
-/* ... (Los estilos de .sidebar, .menu-toggle, .search-section, .tools-menu se mantienen) */
-/* ... (Los estilos de .history-list-container, .history-item se mantienen) */
-
-
-/* ========================================================================= */
-/* 3. ESTILOS DE CHAT (Incluyendo Reproductor de Música)                     */
-/* ========================================================================= */
-
-.chat-window {
-    flex-grow: 1;
-    padding: 0 20px;
-    overflow-y: auto;
-    scroll-behavior: smooth; 
-}
-
-.chat-message {
-    margin-bottom: 25px;
-    display: flex;
-    flex-direction: column;
-    max-width: 100%; 
-    align-items: flex-start;
-}
-/* ... (Los estilos de .chat-user, .chat-ia, .chat-image, .ia-actions, .ia-sources se mantienen) */
-
-/* Estilos para el Reproductor de Música */
-.music-player {
-    display: flex;
-    flex-direction: column;
     gap: 10px;
-    margin-top: 15px;
-    width: 100%;
-    max-width: 350px; 
-    padding: 10px;
-    background-color: var(--surface-color);
-    border-radius: 10px;
-    border: 1px solid var(--hover-color);
 }
 
-.music-player audio {
-    width: 100%;
-    background-color: var(--input-color); 
-    border-radius: 5px;
-    outline: none;
+.tts-controls button {
+    background: none;
+    border: none;
+    color: var(--secondary-color); /* Color de texto del enlace/botón */
+    cursor: pointer;
+    font-size: 14px;
+    padding: 5px 0;
+    text-decoration: underline;
 }
 
-.download-music-btn {
-    display: inline-block;
-    padding: 8px 15px;
-    background-color: var(--accent-color);
-    color: var(--text-color);
-    text-decoration: none;
-    border-radius: 15px;
-    font-size: 0.9em;
-    text-align: center;
-    transition: opacity 0.15s;
+/* Círculo Flotante de TTS (esquina inferior izquierda) */
+.tts-floating-btn {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: #5b21b6; /* Morado, o el color primario de tu tema */
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    z-index: 1000; /* Asegura que esté por encima de todo */
+    transition: transform 0.2s, background-color 0.2s;
+    
+    /* Iconos dentro del botón */
+    color: white; 
 }
 
-.download-music-btn:hover {
-    opacity: 0.8;
+.tts-floating-btn.hidden {
+    /* Transición de salida para que se vea más suave */
+    transform: translateX(-100px); 
+    opacity: 0;
+    pointer-events: none;
 }
 
-/* ... (Los estilos de Media Query se mantienen) */
+.tts-floating-btn:hover {
+    background-color: #6d28d9; /* Tono ligeramente más claro al pasar el ratón */
+}
+
+
+/* Media Query para mover el botón cuando el sidebar está abierto */
+@media (min-width: 1025px) {
+    .sidebar.open + .main-content-wrapper ~ .tts-floating-btn {
+        left: 280px; /* Mueve el botón para que no colisione con el sidebar abierto */
+    }
+}
