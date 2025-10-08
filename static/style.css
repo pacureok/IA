@@ -97,29 +97,14 @@ body {
     margin-bottom: 15px;
 }
 
-.sidebar-header .close-sidebar-btn {
-    background: none;
-    border: none;
-    color: var(--text-color);
-    cursor: pointer;
-    margin-right: 15px;
-    padding: 5px;
-    border-radius: 50%;
-    transition: background-color 0.15s;
-}
-
-.sidebar-header .close-sidebar-btn:hover {
-    background-color: var(--hover-color);
-}
-
 .app-title {
     font-size: 1.2em;
     font-weight: 500;
     color: var(--text-color);
-    flex-grow: 1; /* Ocupa el espacio restante */
+    flex-grow: 1; 
 }
 
-.sidebar-header .search-sidebar-btn {
+.sidebar-options-btn { /* Botón de 3 puntos para opciones del historial */
     background: none;
     border: none;
     color: var(--text-color-secondary);
@@ -127,11 +112,13 @@ body {
     padding: 5px;
     border-radius: 50%;
     transition: background-color 0.15s;
+    margin-left: auto; /* Empuja a la derecha */
 }
 
-.sidebar-header .search-sidebar-btn:hover {
+.sidebar-options-btn:hover {
     background-color: var(--hover-color);
 }
+
 
 .sidebar-main-options {
     margin-bottom: 20px;
@@ -151,6 +138,7 @@ body {
     font-size: 1em;
     transition: background-color 0.15s, color 0.15s;
     text-align: left;
+    white-space: nowrap; /* Evita que el texto se rompa */
 }
 
 .sidebar-option:hover {
@@ -159,22 +147,22 @@ body {
 }
 
 .sidebar-option.active {
-    background-color: var(--hover-color); /* Color de fondo para la opción activa */
+    background-color: var(--hover-color); 
     color: var(--text-color);
     font-weight: 500;
 }
 
 .sidebar-option svg {
-    color: var(--text-color-secondary); /* Color de los iconos */
+    color: var(--text-color-secondary); 
     flex-shrink: 0;
 }
 
 .sidebar-option.active svg {
-    color: var(--accent-color); /* Color del icono para la opción activa */
+    color: var(--accent-color); 
 }
 
 .new-chat-icon {
-    margin-left: auto; /* Mueve el icono '+' a la derecha */
+    margin-left: auto; 
     color: var(--text-color-secondary);
 }
 
@@ -185,7 +173,7 @@ body {
 .history-list-container {
     flex-grow: 1;
     overflow-y: auto;
-    padding-top: 10px; /* Pequeño padding para separación */
+    padding-top: 10px; 
 }
 
 .history-item {
@@ -208,7 +196,19 @@ body {
     color: var(--text-color);
 }
 
-/* Botón de 3 puntos "..." en el historial */
+.history-item.active {
+    background-color: var(--hover-color); 
+    color: var(--text-color);
+}
+
+.history-item span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis; /* Puntos suspensivos si el texto es muy largo */
+    flex-grow: 1;
+}
+
+/* Botón de 3 puntos "..." en cada item del historial */
 .chat-options-dots {
     background: none;
     border: none;
@@ -217,13 +217,15 @@ body {
     border-radius: 50%;
     transition: background-color 0.15s;
     flex-shrink: 0;
+    margin-left: 10px; /* Separación del texto */
+    position: relative; /* Para el menú flotante */
 }
 .chat-options-dots:hover {
     background-color: var(--input-color);
 }
 
 .sidebar-footer {
-    margin-top: auto; /* Empuja el footer hacia abajo */
+    margin-top: auto; 
     padding-top: 10px;
     border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
@@ -239,7 +241,7 @@ body {
     border: none;
     color: var(--text-color-secondary);
     cursor: pointer;
-    z-index: 30; /* Asegura que esté por encima de la barra lateral */
+    z-index: 30; 
     padding: 5px;
     border-radius: 50%;
     transition: background-color 0.15s;
@@ -275,19 +277,19 @@ body {
     display: flex;
     align-items: center;
     width: 100%;
-    max-width: 768px; /* Ancho más generoso */
+    max-width: 768px; 
     background-color: var(--input-color);
-    border-radius: 28px; /* Más redondeado */
+    border-radius: 28px; 
     padding: 8px 15px; 
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-.tools-upload-btn, .mic-btn, .search-btn {
+.multi-upload-btn, .mic-btn, .search-btn {
     background: none;
     border: none;
     color: var(--text-color-secondary);
     cursor: pointer;
-    padding: 8px; /* Área de clic más grande */
+    padding: 8px; 
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -296,31 +298,42 @@ body {
     transition: background-color 0.15s;
 }
 
-.tools-upload-btn:hover, .mic-btn:hover, .search-btn:hover {
+.multi-upload-btn:hover, .mic-btn:hover, .search-btn:hover {
     background-color: var(--hover-color);
 }
 
-.tools-upload-btn svg {
-     color: var(--text-color-secondary); /* Icono + gris */
+.multi-upload-btn svg {
+     color: var(--text-color-secondary); 
 }
 
-.tools-text {
+.tools-btn { /* El botón de "Herramientas" */
+    background: none;
+    border: none;
     color: var(--text-color-secondary);
+    cursor: pointer;
     font-size: 1em;
-    margin-right: 10px; /* Espacio antes del input */
-    cursor: default;
-    padding-left: 5px; /* Pequeño padding si hay un icono antes */
+    padding: 8px 12px;
+    border-radius: 20px; /* Para que parezca un botón */
+    transition: background-color 0.15s, color 0.15s;
+    margin-right: 10px;
+    white-space: nowrap; /* Evita que el texto se rompa */
 }
+
+.tools-btn:hover {
+    background-color: var(--hover-color);
+    color: var(--text-color);
+}
+
 
 #searchInput {
     flex-grow: 1;
     border: none;
     background: none;
     color: var(--text-color);
-    padding: 10px; /* Ajuste el padding para centrar el texto */
+    padding: 10px; 
     font-size: 1em;
     outline: none;
-    margin: 0 5px; /* Espacio a los lados */
+    margin: 0 5px; 
 }
 
 .mic-btn svg, .search-btn svg {
@@ -336,10 +349,10 @@ body {
     height: 20px;
 }
 
-/* Vista previa de la imagen */
+/* Vista previa de la imagen/archivo */
 .image-preview-container {
     position: absolute;
-    bottom: calc(30px + 60px); /* Arriba del search-group (padding-bottom + altura del search-group) */
+    bottom: calc(30px + 60px); 
     left: 50%;
     transform: translateX(-50%);
     background-color: var(--input-color);
@@ -354,37 +367,97 @@ body {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
+.image-file-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-grow: 1;
+}
+
+#imagePreview {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    border-radius: 5px;
+    background-color: rgba(255,255,255,0.1); /* Fondo para archivos que no son imagen */
+}
+
+.file-name-display {
+    color: var(--text-color);
+    font-size: 0.9em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: calc(100% - 60px); /* Ajustar según el ancho del icono */
+}
+
+.remove-btn {
+    background: none;
+    border: none;
+    color: var(--text-color-secondary);
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 50%;
+    transition: background-color 0.15s;
+}
+
+.remove-btn:hover {
+    background-color: var(--hover-color);
+}
+
 /* ========================================================================= */
-/* 6. MENÚ FLOTANTE (Word/Excel)                                             */
+/* 6. MENÚ FLOTANTE (Herramientas y Opciones de Historial)                   */
 /* ========================================================================= */
-.tools-menu {
+.tools-menu, .history-options-menu {
     position: absolute;
-    background-color: var(--surface-color);
+    background-color: var(--surface-color-dark); /* Más oscuro para contraste */
     border: 1px solid var(--hover-color);
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
     z-index: 1000; 
-    min-width: 200px;
+    min-width: 180px;
     padding: 5px;
+    transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out;
 }
 
-.tool-option {
+.tools-menu {
+    /* Posicionado por JS */
+}
+
+.history-options-menu {
+    /* Posicionado por JS */
+}
+
+.menu-option {
     display: flex;
     align-items: center;
     gap: 10px;
+    width: 100%;
     padding: 10px 15px;
     cursor: pointer;
     border-radius: 6px;
+    background-color: transparent;
+    border: none;
+    color: var(--text-color); 
+    font-size: 0.95em;
     transition: background-color 0.15s;
-    color: var(--text-color); /* Cambiado a text-color para que se vea blanco */
 }
 
-.tool-option:hover {
+.menu-option:hover {
     background-color: var(--hover-color);
 }
 
-.tool-option svg {
+.menu-option svg {
     color: var(--text-color-secondary);
+    flex-shrink: 0;
+}
+
+.menu-option.delete-option {
+    color: #f44336; /* Color rojo para borrar */
+}
+
+.menu-option.delete-option svg {
+    color: #f44336;
 }
 
 /* ========================================================================= */
@@ -395,32 +468,32 @@ body {
     flex-grow: 1;
     padding: 20px;
     overflow-y: auto;
-    scroll-behavior: smooth; /* Desplazamiento suave */
+    scroll-behavior: smooth; 
 }
 
 .chat-message {
     margin-bottom: 25px;
     display: flex;
     flex-direction: column;
-    max-width: 100%; /* Permite que el chat ocupe todo el ancho si es necesario */
+    max-width: 100%; 
     align-items: flex-start;
 }
 
 .chat-user {
-    align-self: flex-end; /* Mensajes del usuario a la derecha */
-    background-color: #007bff; /* Azul para el usuario */
+    align-self: flex-end; 
+    background-color: #007bff; 
     color: white;
     padding: 10px 15px;
-    border-radius: 18px 18px 0 18px; /* Esquinas redondeadas, una recta */
+    border-radius: 18px 18px 0 18px; 
     max-width: 70%;
 }
 
 .chat-ia {
-    align-self: flex-start; /* Mensajes de la IA a la izquierda */
-    background-color: var(--input-color); /* Fondo oscuro para IA */
+    align-self: flex-start; 
+    background-color: var(--input-color); 
     color: var(--text-color);
     padding: 10px 15px;
-    border-radius: 18px 18px 18px 0; /* Esquinas redondeadas, una recta */
+    border-radius: 18px 18px 18px 0; 
     max-width: 70%;
 }
 
@@ -438,7 +511,7 @@ body {
     height: auto;
     border-radius: 8px;
     margin-top: 10px;
-    display: block; /* Asegura que la imagen no tenga espacio extra abajo */
+    display: block; 
 }
 
 /* Controles de acción de la IA (Respuesta correcta/incorrecta, etc.) */
@@ -452,7 +525,7 @@ body {
     width: max-content;
     gap: 5px; 
     position: relative; 
-    align-self: flex-start; /* Se alinea con el mensaje de la IA */
+    align-self: flex-start; 
 }
 
 .action-btn {
@@ -495,6 +568,46 @@ body {
     z-index: 1001;
 }
 
+/* Estilos para la sección de "Sources" */
+.ia-sources {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 15px;
+    padding: 8px 12px;
+    background-color: var(--surface-color-dark);
+    border-radius: 20px;
+    font-size: 0.85em;
+    color: var(--text-color-secondary);
+    cursor: pointer;
+    transition: background-color 0.15s;
+    align-self: flex-start;
+}
+
+.ia-sources:hover {
+    background-color: var(--hover-color);
+}
+
+.ia-sources-icons {
+    display: flex;
+    gap: 5px;
+}
+
+.ia-sources-icons img {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.ia-sources .expand-icon {
+    margin-left: auto;
+    width: 16px;
+    height: 16px;
+    color: var(--text-color-secondary);
+}
+
+
 /* ========================================================================= */
 /* 8. RESPONSIVE Y UTILIDADES                                                */
 /* ========================================================================= */
@@ -514,7 +627,12 @@ body {
     .sidebar:not(.open) { /* Abre la sidebar por defecto en desktop si no está cerrada */
         transform: translateX(0);
     }
-    .sidebar-header .close-sidebar-btn { /* Oculta el botón de cerrar en la sidebar en desktop */
+    /* Oculta el botón de opciones del sidebar si no queremos que cierre en desktop */
+    .sidebar-header .sidebar-options-btn { 
+        display: block; /* O lo mantiene si queremos que muestre un menú de opciones global del sidebar */
+    }
+    /* En desktop, la barra lateral permanece abierta, así que ocultamos el botón de cerrar */
+    .sidebar-header .close-sidebar-btn {
         display: none;
     }
 }
@@ -531,7 +649,6 @@ body {
         padding: 6px 10px;
     }
     .sidebar {
-        /* Para que la barra lateral ocupe toda la pantalla en móvil */
         width: 100%; 
         left: 0;
         top: 0;
@@ -539,9 +656,14 @@ body {
         overflow-y: auto;
     }
     .sidebar.open + .main-content-wrapper .menu-toggle {
-        display: block; /* Muestra el toggle principal */
+        display: none; /* Oculta el toggle principal cuando la sidebar está abierta en móvil */
     }
-    .sidebar-header .close-sidebar-btn {
-        display: block; /* Muestra el botón de cerrar en la barra lateral */
+    /* En móvil, el botón de opciones del sidebar se convierte en el botón para cerrar la sidebar */
+    .sidebar-header .sidebar-options-btn {
+        display: block; /* Asegura que el botón de opciones esté visible */
+    }
+    /* El botón de 'X' para cerrar la sidebar en móvil, si se decide usar un icono diferente */
+    .sidebar-header .close-sidebar-btn { 
+        display: none; /* Ocultar si sidebarOptionsBtn toma su lugar */
     }
 }
