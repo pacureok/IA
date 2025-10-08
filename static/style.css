@@ -1,30 +1,163 @@
-/* (MANTÉN TODOS LOS ESTILOS ANTERIORES DE 'style.css') */
+/* VARIABLES DE COLOR */
+:root {
+    --bg-color: #1a1a1a;        /* Fondo principal oscuro (Gemini) */
+    --surface-color: #2c2c2c;   /* Color de la tarjeta/burbuja IA */
+    --text-color: #e0e0e0;      /* Texto principal claro */
+    --accent-color: #4285F4;    /* Azul de Google/enfoque */
+    --error-color: #FF6666;     /* Rojo para errores */
+}
 
-/* ---------------------------------------------------- */
-/* NUEVOS ESTILOS PARA LA BARRA DE ACCIONES (TOOLTIP)   */
-/* ---------------------------------------------------- */
+/* ESTILOS GLOBALES Y FONDO */
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: 'Roboto', Arial, sans-serif;
+    display: flex;
+    justify-content: flex-start;
+    align-items: stretch;
+    min-height: 100vh;
+    margin: 0;
+    padding-top: 0;
+    box-sizing: border-box;
+    overflow-y: scroll; /* Permite el desplazamiento de toda la página */
+}
+
+.container {
+    margin: 0;
+    max-width: 900px; 
+    flex-grow: 1;
+    padding: 0 20px 150px 20px; /* Padding inferior para el área de búsqueda fija */
+}
+
+/* -------------------- BARRA LATERAL (HISTORIAL) -------------------- */
+.sidebar {
+    width: 280px;
+    background-color: #242424; /* Tono más oscuro que el fondo principal */
+    min-height: 100vh;
+    padding: 10px;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.5);
+    position: sticky;
+    top: 0;
+}
+
+.history-list {
+    margin-top: 20px;
+    padding: 0;
+}
+
+.new-chat-btn {
+    background-color: #3b3b3b;
+    color: var(--text-color);
+    padding: 10px 15px;
+    border-radius: 20px;
+    margin-bottom: 20px;
+    cursor: pointer;
+    font-weight: 500;
+    text-align: left;
+}
+
+.history-item {
+    color: #b0b0b0;
+    padding: 8px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: left;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    transition: background-color 0.2s;
+}
+
+.history-item:hover, .history-item.active {
+    background-color: #3b3b3b;
+}
+
+/* -------------------- TÍTULO Y VENTANA DE CHAT -------------------- */
+
+.main-title {
+    font-size: 32px;
+    font-weight: 400;
+    color: var(--accent-color);
+    margin-bottom: 80px;
+    padding-top: 50px;
+    text-align: center;
+}
+
+.chat-window {
+    padding: 20px;
+    flex-grow: 1;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.chat-message {
+    display: flex;
+    margin-bottom: 25px;
+    align-items: flex-start;
+}
 
 .message-bubble {
-    /* ... (Mantener estilos anteriores de la burbuja) ... */
-    position: relative; /* Necesario para posicionar la barra de herramientas */
+    padding: 12px 18px;
+    border-radius: 20px;
+    max-width: 70%;
+    text-align: left;
+    font-size: 16px;
+    line-height: 1.5;
+    word-wrap: break-word;
+    position: relative; 
 }
+
+.bubble-user {
+    background-color: #4a4a4a; /* Gris claro para el usuario */
+    color: var(--text-color);
+    margin-left: auto;
+    border-bottom-right-radius: 4px;
+}
+
+.bubble-ia {
+    background-color: #242424; /* Fondo del chat para la IA */
+    color: var(--text-color);
+    margin-right: auto;
+    border-bottom-left-radius: 4px;
+    text-align: left;
+}
+
+/* Mensaje de Detención (Aparece fuera de la burbuja) */
+.stop-notice {
+    color: #b0b0b0;
+    font-weight: 400;
+    margin-top: 5px;
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    margin-left: 20px; /* Alineación a la izquierda */
+}
+
+.stop-icon {
+    width: 20px;
+    height: 20px;
+    margin-right: 5px;
+    filter: drop-shadow(0 0 5px #4285F4); /* Para darle el brillo azul */
+}
+
+/* -------------------- BARRA DE ACCIONES -------------------- */
 
 .ia-actions {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-top: 15px; /* Espacio debajo del texto */
+    margin-top: 15px;
 }
 
 .action-btn {
     background: transparent;
     border: none;
-    color: #9aa0a6; /* Gris suave para los iconos */
+    color: #9aa0a6; 
     cursor: pointer;
     padding: 5px;
     border-radius: 50%;
     transition: background-color 0.2s, color 0.2s;
-    position: relative; /* Para el tooltip */
+    position: relative;
 }
 
 .action-btn:hover {
@@ -38,7 +171,7 @@
     display: block;
 }
 
-/* Tooltips (Los textos que aparecen al pasar el ratón) */
+/* Tooltips */
 .tooltip-text {
     visibility: hidden;
     background-color: #f1f3f4;
@@ -48,7 +181,7 @@
     padding: 5px 10px;
     position: absolute;
     z-index: 1001;
-    bottom: calc(100% + 10px); /* Arriba del icono */
+    bottom: calc(100% + 10px); 
     left: 50%;
     transform: translateX(-50%);
     white-space: nowrap;
@@ -77,8 +210,8 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
     z-index: 1002;
     padding: 5px 0;
-    min-width: 150px;
-    display: none; /* Controlado por JavaScript */
+    min-width: 180px; /* Ancho para "Volver a escuchar TTS" */
+    display: none; 
 }
 
 .options-menu button {
@@ -95,4 +228,58 @@
 
 .options-menu button:hover {
     background-color: #4a4a4a;
+}
+
+/* -------------------- SECCIÓN DE BÚSQUEDA (FIJA) -------------------- */
+.search-section {
+    position: fixed;
+    bottom: 0;
+    left: 280px; 
+    right: 0;
+    padding: 20px 30px;
+    background-color: var(--bg-color);
+    box-shadow: 0 -5px 10px rgba(0, 0, 0, 0.5);
+    text-align: center;
+    z-index: 1000;
+}
+.search-group {
+    max-width: 800px;
+    display: flex;
+    align-items: center;
+    background-color: var(--surface-color);
+    border-radius: 30px;
+    padding: 10px 20px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+    margin: 0 auto;
+}
+#searchInput {
+    flex-grow: 1;
+    border: none;
+    background: transparent;
+    color: var(--text-color);
+    font-size: 18px;
+    padding: 8px 10px;
+    outline: none;
+}
+.voice-btn, #searchBtn {
+    background: transparent;
+    border: none;
+    color: var(--text-color);
+    cursor: pointer;
+    padding: 0 10px;
+    font-size: 24px;
+}
+.voice-btn.listening { color: var(--error-color); }
+.search-icon { color: var(--accent-color); width: 24px; height: 24px;}
+
+/* --- UTILIDADES --- */
+.hidden {
+    display: none !important;
+}
+.error {
+    background-color: rgba(255, 102, 102, 0.2);
+    color: var(--error-color);
+    margin-top: 15px;
+    padding: 15px;
+    border-radius: 8px;
 }
