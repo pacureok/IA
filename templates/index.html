@@ -10,45 +10,40 @@
 </head>
 <body>
 
+    <button class="menu-toggle" id="menuToggle" aria-label="Abrir menú">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="24" height="24"><path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <button class="menu-toggle" id="menuToggle">
+            <button class="menu-toggle close-sidebar-btn" aria-label="Cerrar menú">
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="24" height="24"><path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
-            <span class="sidebar-title">Gemini</span>
+            <span class="app-title">PACURE IA</span>
+            <button class="search-sidebar-btn" aria-label="Buscar en el historial">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="24" height="24"><path d="M11 19C15.4183 19 19 15.4183 19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19ZM11 17C14.3137 17 17 14.3137 17 11C17 7.68629 14.3137 5 11 5C7.68629 5 5 7.68629 5 11C5 14.3137 7.68629 17 11 17ZM21 21L16 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
         </div>
 
-        <button class="new-conversation-btn">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="24" height="24"><path d="M7 7L17 17M7 17L17 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 20H8L18.5 9.5C18.8953 9.10468 19.1171 8.56611 19.1171 7.99479C19.1171 7.42346 18.8953 6.88489 18.5 6.48957L15.5 3.48957C15.1047 3.09425 14.5661 2.87248 13.9948 2.87248C13.4235 2.87248 12.8849 3.09425 12.4896 3.48957L2 14.9896V20Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Nueva conversación
-        </button>
-
-        <div class="sidebar-section-title">Gems</div>
-        <div class="gem-item">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="20" height="20"><path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <span>Storybook</span>
-        </div>
-        <div class="gem-item">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="20" height="20"><path d="M12 21.35L10.55 20.03C5.4 15.36 2 12.27 2 8.5C2 5.42 4.42 3 7.5 3C9.24 3 10.91 3.81 12 5.09C13.09 3.81 14.76 3 16.5 3C19.58 3 22 5.42 22 8.5C22 12.27 18.6 15.36 13.45 20.03L12 21.35Z" fill="currentColor"/></svg>
-            <span>Descubrir Gems</span>
+        <div class="sidebar-main-options">
+            <button id="newChatBtn" class="sidebar-option active">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="20" height="20"><path d="M14 10L17 13M14 10L10 14M14 10C14 7.23858 11.7614 5 9 5C6.23858 5 4 7.23858 4 10C4 12.7614 6.23858 15 9 15H10.5M14 10L17 13M14 10L10 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 18H10C8.89543 18 8 17.1046 8 16V6C8 4.89543 8.89543 4 10 4H20C21.1046 4 22 4.89543 22 6V16C22 17.1046 21.1046 18 20 18Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Nueva conversación
+                <span class="new-chat-icon"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="20" height="20"><path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            </button>
+            <button class="sidebar-option">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="20" height="20"><path d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 6V18M12 6L15 9M12 6L9 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Descubrir Gems
+            </button>
         </div>
 
-        <div class="sidebar-section-title">Reciente</div>
         <div id="historyList" class="history-list-container">
-            <div class="history-item" data-chat-id="chat1">
-                <span>Juegos de badrooms</span>
-                <button class="pin-btn"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="16" height="16"><path d="M17 3H7C5.89543 3 5 3.89543 5 5V18C5 19.1046 5.89543 20 7 20H17C18.1046 20 19 19.1046 19 18V5C19 3.89543 18.1046 3 17 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 1H15M12 11V18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
             </div>
-             <div class="history-item" data-chat-id="chat2">
-                <span>Propuesta de juego SCP-3008 m...</span>
-                <button class="pin-btn"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="16" height="16"><path d="M17 3H7C5.89543 3 5 3.89543 5 5V18C5 19.1046 5.89543 20 7 20H17C18.1046 20 19 19.1046 19 18V5C19 3.89543 18.1046 3 17 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 1H15M12 11V18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-            </div>
-        </div>
-
+        
         <div class="sidebar-footer">
-            <button class="settings-btn" title="Configuración y ayuda">
+            <button class="sidebar-option settings-btn">
                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="20" height="20"><path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM13 19.93V17H11V19.93C7.05 19.44 4 16.08 4 12C4 7.92 7.05 4.56 11 4.07V7H13V4.07C16.95 4.56 20 7.92 20 12C20 16.08 16.95 19.44 13 19.93Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                <span>Configuración y ayuda</span>
+                Configuración y ayuda
             </button>
         </div>
     </div>
@@ -56,24 +51,7 @@
     <div class="main-content-wrapper" id="mainContentWrapper">
         <div class="container">
             <div class="chat-window" id="chatWindow">
-                <div id="homePage" class="chat-page active">
-                    <h1 class="main-title">Hola, YouTuber pacure</h1>
-                    </div>
-
-                <div id="chat1" class="chat-page hidden">
-                    <div class="chat-message chat-user"><p>Háblame sobre juegos de badrooms.</p></div>
-                    <div class="chat-message chat-ia">
-                        <p>Claro, los "badrooms" (o "backrooms") son un concepto popular en internet que se refiere a...</p>
-                        <img src="https://via.placeholder.com/400x200.png?text=Backrooms+Image" alt="Imagen de Backrooms" class="chat-image">
-                    </div>
-                </div>
-                 <div id="chat2" class="chat-page hidden">
-                    <div class="chat-message chat-user"><p>Cuéntame sobre SCP-3008.</p></div>
-                    <div class="chat-message chat-ia">
-                        <p>SCP-3008 es una anomalía de la Fundación SCP, comúnmente conocida como "Una Tienda IKEA interminable"...</p>
-                        <img src="https://via.placeholder.com/400x200.png?text=SCP-3008+IKEA" alt="Imagen de SCP-3008" class="chat-image">
-                    </div>
-                </div>
+                <h1 class="main-title">Hola, <span class="user-name">YouTuber pacure</span></h1>
             </div>
         </div>
     </div>
@@ -90,34 +68,36 @@
     </div>
     
     <div class="search-section" id="searchSection">
-        <p class="search-prompt">Pregúntale a PACUR IA</p>
         
         <div id="imagePreviewContainer" class="image-preview-container hidden">
             <div class="image-file-info">
                  <img id="imagePreview" src="" alt="Vista previa de la imagen">
                  <span id="fileNameDisplay" class="file-name-display"></span>
             </div>
-            <button id="removeImageBtn" class="remove-btn">
+            <button id="removeImageBtn" class="remove-btn" aria-label="Eliminar imagen">
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="20" height="20"><path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
         </div>
 
         <div class="search-group">
-            <button id="uploadImageBtn" class="upload-btn" title="Subir Archivos/Herramientas">
+            
+            <button id="toolsOrUploadBtn" class="tools-upload-btn" title="Herramientas y subir archivos">
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="24" height="24"><path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
-            <input type="file" id="imageInput" accept="image/*" class="hidden" multiple max="10"> 
+            <input type="file" id="fileInput" accept="image/*, application/pdf, .doc, .docx, .xls, .xlsx" class="hidden" multiple max="10"> 
             
             <span class="tools-text">Herramientas</span> 
 
-            <input type="text" id="searchInput" placeholder="Escribe o habla tu consulta..." class="input-with-image">
+            <input type="text" id="searchInput" placeholder="Pregunta a PACURE IA" class="input-with-image">
             
-            <button id="microphoneBtn" class="microphone-btn">
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="24" height="24"><path d="M12 2C10.8954 2 10 2.89543 10 4V13C10 14.1046 10.8954 15 12 15C13.1046 15 14 14.1046 14 13V4C14 2.89543 13.1046 2 12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M19 10C19 13.866 15.866 17 12 17C8.13401 17 5 13.866 5 10M12 17V22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <button id="micBtn" class="mic-btn" aria-label="Activar dictado por voz">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="24" height="24"><path d="M12 1A3 3 0 0 0 9 4V10A3 3 0 0 0 15 10V4A3 3 0 0 0 12 1ZM19 10V11A7 7 0 0 1 5 11V10M12 19V22M19 19H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            
+            <button id="searchBtn" class="search-btn" aria-label="Enviar pregunta">
+                <svg class="search-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 19C15.4183 19 19 15.4183 19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19ZM11 17C14.3137 17 17 14.3137 17 11C17 7.68629 14.3137 5 11 5C7.68629 5 5 7.68629 5 11C5 14.3137 7.68629 17 11 17ZM21 21L16 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
         </div>
-        
-        <button id="quickQueryBtn" class="quick-query-btn">¿Qué hora es?</button>
     </div>
     
     <script src="{{ url_for('static', filename='script.js') }}"></script>
