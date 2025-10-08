@@ -4,10 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PACURE IA - Asistente de Chat</title>
+    
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"> 
+    
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     
-    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/imagres.ico') }}"> 
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='imang/imagres.ico') }}"> 
 </head>
 <body>
 
@@ -18,7 +20,7 @@
     </button>
     
     <div class="sidebar" id="sidebar">
-        <div id="historyList">
+        <div id="historyList" class="history-list-container">
             </div>
         
         <div class="sidebar-footer">
@@ -36,7 +38,7 @@
             </div>
             
             <div class="quick-access-buttons">
-                 <button id="quickQueryBtn" class="quick-query-btn">¿Qué hora es?</button>
+                 <button id="quickQueryBtn" class="quick-query-btn hidden">¿Qué hora es?</button>
             </div>
         </div>
     </div>
