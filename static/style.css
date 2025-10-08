@@ -1,99 +1,140 @@
-/* --- ESTILOS ADICIONALES PARA HERRAMIENTAS (AGREGAR AL FINAL) --- */
+/* --- ESTILOS ADICIONALES PARA GESTIÓN DE CHAT --- */
 
-/* Botón de Herramientas */
-.tools-btn {
-    background: transparent;
+/* Contenedor del título y los botones de opciones en el historial */
+.history-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    border-radius: 8px;
+    margin-bottom: 5px;
+    cursor: pointer;
+    background-color: transparent; /* Fondo base */
+    color: var(--text-color-secondary); /* Texto grisáceo */
+    position: relative; /* Para el menú de opciones */
+    transition: background-color 0.15s, color 0.15s;
+}
+
+.history-item:hover, .history-item.active {
+    background-color: var(--hover-color);
+    color: var(--text-color);
+}
+
+.history-item.active {
+    font-weight: 500;
+}
+
+/* Contenedor del Título y Pin Icon */
+.chat-title-container {
+    display: flex;
+    align-items: center;
+    flex-grow: 1; /* Permite que ocupe el espacio */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.chat-title-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Icono de Pin (Fijado) */
+.pin-icon {
+    display: flex;
+    align-items: center;
+    margin-right: 5px;
+    color: var(--accent-color); /* Color de acento para destacar */
+}
+.pin-icon svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* Botón de puntos suspensivos para opciones (borrar/renombrar) */
+.chat-options-dots {
+    color: var(--text-color-secondary);
+    padding: 5px;
+    border-radius: 50%;
+    transition: background-color 0.15s;
+}
+
+.chat-options-dots:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.chat-options-dots svg {
+    width: 18px;
+    height: 18px;
+    display: block;
+}
+
+/* Menú flotante de opciones del chat */
+.chat-options-menu {
+    position: absolute;
+    top: 5px; /* Ajuste para que caiga sobre el historial */
+    right: 5px;
+    background-color: var(--surface-color-dark); /* Color más oscuro que el fondo para destacar */
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    z-index: 1000; 
+    min-width: 150px;
+    padding: 5px;
+}
+
+.chat-options-menu button {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    padding: 8px 10px;
+    background: none;
     border: none;
     color: var(--text-color);
     cursor: pointer;
-    padding: 0 10px 0 0; 
-    transition: color 0.2s;
+    text-align: left;
+    border-radius: 6px;
+    transition: background-color 0.1s;
 }
 
-.tools-btn:hover {
-    color: var(--accent-color);
-}
-
-/* Menú Flotante de Herramientas */
-.tools-menu {
-    position: absolute;
-    bottom: 80px; /* Ajuste para que esté sobre la barra de búsqueda */
-    left: 40px;
-    background-color: var(--surface-color);
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-    padding: 10px 0;
-    z-index: 100;
-    min-width: 200px;
-}
-
-.tool-option {
-    display: flex;
-    align-items: center;
-    padding: 10px 20px;
-    color: var(--text-color);
-    cursor: pointer;
-    transition: background-color 0.15s;
-    font-size: 0.95em;
-}
-
-.tool-option:hover {
+.chat-options-menu button:hover {
     background-color: var(--hover-color);
 }
 
-.tool-option svg {
-    margin-right: 10px;
-    color: var(--accent-color);
+.chat-options-menu button svg {
+    width: 16px;
+    height: 16px;
+    margin-right: 8px;
+    color: var(--text-color-secondary);
 }
 
-/* Estilo para el apunte creado */
-.created-document {
-    background-color: #383838; /* Un color de fondo diferente para el apunte */
-    border-radius: 10px;
-    padding: 15px;
-    margin-top: 10px;
-    border-left: 5px solid var(--accent-color);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    position: relative;
-    max-width: 90%;
+.chat-options-menu .delete-btn {
+    color: #ff5555; /* Color de advertencia para borrar */
+}
+.chat-options-menu .delete-btn svg {
+    color: #ff5555;
 }
 
-.document-title {
-    font-size: 1.2em;
-    font-weight: 700;
-    color: white;
-    margin-bottom: 8px;
-}
-
-.document-content {
-    font-size: 0.9em;
-    white-space: pre-wrap; /* Mantiene el formato y los saltos de línea */
-    color: #ccc;
-    margin-bottom: 15px;
-}
-
-.document-actions {
+/* Estilo para el aviso de respuesta detenida */
+.stop-notice-container {
+    width: 100%;
     display: flex;
-    gap: 10px;
+    justify-content: flex-end; /* Alineado a la derecha como un mensaje de usuario */
 }
 
-.document-actions button {
-    background-color: var(--accent-color);
-    color: white;
-    border: none;
-    padding: 8px 15px;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-.document-actions button:hover {
-    background-color: #5558ff; /* Tono más oscuro de accent-color */
-}
-
-/* Estilos de la barra de búsqueda para que se alinee con el botón de herramientas */
-.search-group {
-    display: flex;
+.stop-notice {
+    display: inline-flex;
     align-items: center;
-    padding: 5px 10px; /* Ajuste si es necesario */
+    background-color: #3b3b3b; /* Fondo oscuro, similar al de Gemini */
+    color: #ccc;
+    padding: 6px 12px;
+    border-radius: 18px;
+    font-size: 0.85em;
+    margin-top: 10px;
+}
+
+.stop-icon {
+    color: #3B82F6; /* Color azul para el diamante */
+    font-size: 1.2em;
+    line-height: 1;
+    margin-right: 5px;
 }
