@@ -7,3 +7,5 @@ gunicorn
 Pillow 
 midiutil
 pydub
+lxml
+html5lib
