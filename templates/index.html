@@ -11,15 +11,19 @@
         <h1>Buscador Web Inteligente</h1>
         <p class="subtitle">Busca en Wikipedia primero, luego en otras fuentes web</p>
         
+        <div class="quick-access-buttons">
+            <button id="timeWeatherBtn" class="quick-btn">¿Qué hora es?</button>
+        </div>
+        
         <div class="search-section">
             <div class="search-group">
                 <input 
                     type="text" 
                     id="searchInput" 
-                    placeholder="Escribe tu consulta de búsqueda..." 
+                    placeholder="Escribe o habla tu consulta..." 
                     autocomplete="off"
                 >
-                <button id="searchBtn" onclick="buscar()">Buscar</button>
+                <button id="voiceBtn" class="voice-btn">🎤 Voz</button> <button id="searchBtn">Buscar</button>
             </div>
         </div>
         
