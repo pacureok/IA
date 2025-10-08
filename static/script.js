@@ -6,6 +6,9 @@ function stopSpeaking() {
     if (speaking && 'speechSynthesis' in window) {
         window.speechSynthesis.cancel();
         speaking = false;
+        // Opcional: Cambiar el texto del botón si existe
+        const stopBtn = document.getElementById('stopSpeakerBtn');
+        if (stopBtn) stopBtn.classList.add('hidden');
     }
 }
 
@@ -16,12 +19,24 @@ function speakText(text) {
         const synthesis = window.speechSynthesis;
         const utterance = new SpeechSynthesisUtterance(text);
         
+        const stopBtn = document.getElementById('stopSpeakerBtn');
+        
         // Configuración de la voz
         utterance.lang = 'es-ES';
         
-        utterance.onstart = () => { speaking = true; };
-        utterance.onend = () => { speaking = false; };
-        utterance.onerror = (e) => { console.error('Error TTS:', e); speaking = false; };
+        utterance.onstart = () => { 
+            speaking = true; 
+            if (stopBtn) stopBtn.classList.remove('hidden');
+        };
+        utterance.onend = () => { 
+            speaking = false; 
+            if (stopBtn) stopBtn.classList.add('hidden');
+        };
+        utterance.onerror = (e) => { 
+            console.error('Error TTS:', e); 
+            speaking = false; 
+            if (stopBtn) stopBtn.classList.add('hidden');
+        };
         
         synthesis.speak(utterance);
     } else {
@@ -29,7 +44,6 @@ function speakText(text) {
     }
 }
 
-// Función principal de búsqueda (modificada para añadir el TTS)
 async function buscar() {
     // 1. Elementos del DOM
     const searchInput = document.getElementById('searchInput');
@@ -42,7 +56,7 @@ async function buscar() {
     const resultTitle = document.getElementById('resultTitle');
     const resultText = document.getElementById('resultText');
     const resultLink = document.getElementById('resultLink');
-    const speakerBtn = document.getElementById('speakerBtn');
+    const voiceBtn = document.getElementById('voiceBtn');
     
     stopSpeaking(); // Detiene la voz antes de una nueva búsqueda
     
@@ -59,7 +73,7 @@ async function buscar() {
     timeInfo.classList.add('hidden');
     resultSection.classList.add('hidden');
     searchBtn.disabled = true;
-    speakerBtn.disabled = true; // Deshabilita el botón de voz mientras busca
+    if (voiceBtn) voiceBtn.disabled = true;
     
     try {
         const response = await fetch('/buscar', {
@@ -72,7 +86,7 @@ async function buscar() {
         
         const data = await response.json();
         
-        if (data.success !== false) {
+        if (response.ok) { // Usamos response.ok para manejar códigos 200-299
             // Mostrar información de la hora (si existe)
             if (data.time_info) {
                 timeInfo.textContent = `⏰ ${data.time_info}`;
@@ -90,19 +104,19 @@ async function buscar() {
             
             resultSection.classList.remove('hidden');
             
-            // --- NUEVO: Iniciar lectura de los resultados ---
+            // --- Iniciar lectura de los resultados ---
             const textToRead = `${data.title}. El resumen es: ${data.text}`;
             speakText(textToRead);
-            // ------------------------------------------------
         } else {
-            showError(data.error || 'Error al procesar la búsqueda');
+            // Maneja el error 404/400 del backend (que ahora solo será el fallo de Wikipedia)
+             showError(data.error || 'Error desconocido al procesar la búsqueda');
         }
     } catch (err) {
         showError('Error de conexión con el servidor');
     } finally {
         loading.classList.add('hidden');
         searchBtn.disabled = false;
-        speakerBtn.disabled = false;
+        if (voiceBtn) voiceBtn.disabled = false;
     }
 }
 
@@ -112,9 +126,8 @@ function showError(message) {
     error.classList.remove('hidden');
 }
 
-// --- NUEVO: Función para iniciar la escucha por voz (Web Speech API) ---
+// Función de entrada de voz (sin cambios)
 function startVoiceInput() {
-    // Verificar si el navegador soporta Speech Recognition
     if (!('webkitSpeechRecognition' in window)) {
         alert('Lo sentimos, tu navegador no soporta la función de búsqueda por voz.');
         return;
@@ -122,7 +135,7 @@ function startVoiceInput() {
 
     const recognition = new webkitSpeechRecognition();
     recognition.lang = 'es-ES';
-    recognition.interimResults = false; // Solo resultados finales
+    recognition.interimResults = false;
     recognition.maxAlternatives = 1;
     
     const searchInput = document.getElementById('searchInput');
@@ -136,13 +149,12 @@ function startVoiceInput() {
         searchInput.value = transcript;
         voiceBtn.textContent = '🎤 Voz';
         voiceBtn.classList.remove('listening');
-        buscar(); // Inicia la búsqueda automáticamente con el texto reconocido
+        buscar();
     };
 
     recognition.onerror = function(event) {
         voiceBtn.textContent = '🎤 Voz';
         voiceBtn.classList.remove('listening');
-        console.error('Error de reconocimiento de voz:', event.error);
         if (event.error !== 'no-speech' && event.error !== 'aborted') {
              showError('Error al reconocer la voz. Asegúrate de que el micrófono esté encendido.');
         }
@@ -155,39 +167,23 @@ function startVoiceInput() {
     
     recognition.start();
 }
-// ----------------------------------------------------------------------
 
-
-// --- NUEVO: Función para el botón "Hora y Clima" ---
-// Usaremos la función buscar() para obtener la hora, pero para el clima se necesita una API externa
+// Función para el botón "Hora y Clima" (sin cambios)
 function getWeatherAndSpeak() {
-    // Detenemos cualquier lectura anterior
     stopSpeaking();
-    
-    // Como tu backend SÍ trae la hora (data.time_info), podemos iniciar la búsqueda con un query simple
-    // para obtenerla junto con un mensaje de voz.
     document.getElementById('searchInput').value = 'la hora de hoy';
-    
-    // Llama a buscar, y como el backend siempre trae la hora, la leerá.
-    // NOTA: Para el clima real necesitarías una API de clima y modificar tu Python.
-    // Por ahora, solo usaremos la hora.
     buscar();
 }
-// -------------------------------------------------
-
 
 // Event Listeners
 document.getElementById('searchBtn').addEventListener('click', buscar);
 document.getElementById('searchInput').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
-        e.preventDefault(); // Evita el envío del formulario si fuera un formulario
+        e.preventDefault();
         buscar();
     }
 });
-
-// NUEVO: Conectar los nuevos botones
 document.getElementById('voiceBtn').addEventListener('click', startVoiceInput);
 document.getElementById('timeWeatherBtn').addEventListener('click', getWeatherAndSpeak);
-
-// NUEVO: Botón para detener la lectura (opcional)
-// document.getElementById('stopSpeakerBtn').addEventListener('click', stopSpeaking);
+// 💡 NUEVO: Event listener para detener la voz
+document.getElementById('stopSpeakerBtn').addEventListener('click', stopSpeaking);
