@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PACUR IA</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Buscador Web Inteligente</h1>
+        <p class="subtitle">Busca en Wikipedia primero, luego en otras fuentes web</p>
+        
+        <div class="search-section">
+            <div class="search-group">
+                <input 
+                    type="text" 
+                    id="searchInput" 
+                    placeholder="Escribe tu consulta de búsqueda..." 
+                    autocomplete="off"
+                >
+                <button id="searchBtn" onclick="buscar()">Buscar</button>
+            </div>
+        </div>
+        
+        <div id="loading" class="loading hidden">
+            <div class="spinner"></div>
+            <p>Buscando información...</p>
+        </div>
+        
+        <div id="error" class="error hidden"></div>
+        
+        <div id="timeInfo" class="time-info hidden"></div>
+        
+        <div id="resultSection" class="result-section hidden">
+            <div class="source-badge" id="sourceBadge"></div>
+            <h2 id="resultTitle"></h2>
+            <div id="resultText" class="result-text"></div>
+            <a id="resultLink" href="#" target="_blank" class="result-link">Ver fuente completa →</a>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
