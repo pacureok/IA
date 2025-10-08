@@ -11,7 +11,7 @@
     --input-color: #363636; /* Fondo del campo de búsqueda */
     --max-content-width: 900px;
     --sidebar-width: 280px;
-    --search-height: 150px; /* Altura del padding para la sección de búsqueda */
+    --search-height: 150px; /* Espacio reservado para la barra de búsqueda fija */
 }
 
 * {
@@ -26,7 +26,7 @@ body {
     color: var(--text-color);
     display: flex;
     height: 100vh;
-    overflow: hidden; /* Controla el scroll global */
+    overflow: hidden; 
 }
 
 /* ========================================================================= */
@@ -48,14 +48,12 @@ body {
 .container {
     max-width: var(--max-content-width);
     width: 100%;
-    margin: 0 auto; /* Centrar el contenido */
+    margin: 0 auto; 
     flex-grow: 1;
-    display: flex;
-    flex-direction: column;
 }
 
 .main-title {
-    color: #5599ff; /* Azul brillante */
+    color: #5599ff; 
     text-align: center;
     font-size: 3em;
     font-weight: 500;
@@ -63,14 +61,13 @@ body {
     flex-shrink: 0; 
 }
 
-
 /* ========================================================================= */
 /* 3. BARRA LATERAL (Sidebar) y Historial                                    */
 /* ========================================================================= */
 .sidebar {
     width: var(--sidebar-width);
     background-color: var(--surface-color-dark);
-    position: fixed; /* Fija la barra lateral */
+    position: fixed; 
     height: 100%;
     left: 0;
     top: 0;
@@ -87,69 +84,41 @@ body {
     transform: translateX(0);
 }
 
-/* Mover el contenido principal cuando la barra está abierta (desktop) */
-.main-content-wrapper.sidebar-open {
-    margin-left: var(--sidebar-width);
+.new-chat-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 10px 15px;
+    border-radius: 8px;
+    background-color: var(--input-color);
+    color: var(--text-color);
+    border: none;
+    cursor: pointer;
+    margin-bottom: 10px;
+    font-size: 1em;
 }
-
-/* Estilos de historial (mantener padding-top para el botón de menú) */
+.new-chat-btn svg {
+    color: var(--accent-color);
+    flex-shrink: 0;
+}
 .history-list-container {
     flex-grow: 1;
     overflow-y: auto;
     padding-top: 50px;
 }
 
-.history-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 15px;
-    border-radius: 8px;
-    margin-bottom: 5px;
-    cursor: pointer;
-    background-color: transparent;
-    color: var(--text-color-secondary);
-    position: relative; 
-    transition: background-color 0.15s, color 0.15s;
-    font-size: 0.95em;
-}
-
-/* Botón de 3 puntos "..." */
-.chat-options-dots {
-    color: var(--text-color-secondary);
-    padding: 5px;
-    border-radius: 50%;
-    transition: background-color 0.15s;
-    flex-shrink: 0;
-}
-
-/* Menú flotante de opciones (para Fijar, Borrar, Renombrar) */
-.chat-options-menu {
-    position: absolute;
-    top: 0; 
-    right: -150px; /* Posicionar a la derecha de los 3 puntos */
-    background-color: var(--surface-color);
-    border: 1px solid var(--hover-color);
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-    z-index: 1000; 
-    min-width: 150px;
-    padding: 5px;
-}
-
-
 /* ========================================================================= */
-/* 4. BARRA DE BÚSQUEDA (Solución de Posicionamiento Fijo)                   */
+/* 4. BARRA DE BÚSQUEDA (Estilo Gemini)                                      */
 /* ========================================================================= */
 .search-section {
-    position: fixed; /* HACER FIJO EN LA VENTANA (crucial para el diseño) */
+    position: fixed; 
     bottom: 0;
     left: 0;
     right: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
-    /* Usamos un padding superior grande y un gradiente para unificar el fondo */
     padding: 20px 20px 30px 20px; 
     background: linear-gradient(to top, var(--surface-color) 70%, transparent); 
     z-index: 10;
@@ -165,11 +134,34 @@ body {
     display: flex;
     align-items: center;
     width: 100%;
-    max-width: 680px; /* Ancho fijo para la barra, como en tus imágenes */
+    max-width: 680px; 
     background-color: var(--input-color);
     border-radius: 30px;
-    padding: 8px 15px;
+    padding: 10px 20px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.upload-btn {
+    background: none;
+    border: none;
+    color: var(--text-color-secondary);
+    cursor: pointer;
+    padding: 0 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.upload-btn svg {
+     color: var(--accent-color); /* Color púrpura para el '+' */
+}
+
+.tools-text {
+    color: var(--text-color-secondary);
+    font-size: 1em;
+    margin-right: 15px; 
+    cursor: default;
 }
 
 #searchInput {
@@ -177,46 +169,38 @@ body {
     border: none;
     background: none;
     color: var(--text-color);
-    padding: 10px 10px;
+    padding: 0 10px; 
     font-size: 1em;
     outline: none;
 }
 
-.tools-btn, .upload-btn, #searchBtn {
+.search-icon-pencil {
+    color: var(--accent-color); 
+    margin-right: 10px;
+    cursor: default; 
+}
+
+#searchBtn {
     background: none;
     border: none;
-    color: var(--text-color-secondary);
     cursor: pointer;
-    padding: 0 8px;
+    color: var(--accent-color); 
+    padding-left: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
 }
 
-#searchBtn {
-    color: var(--accent-color); /* Color de la lupa (Púrpura) */
-}
-
-/* Botón rápido "¿Qué hora es?" - posicionado flotante/relativo */
-#quickQueryBtn {
-    position: absolute;
-    top: -45px; /* Arriba de la barra de búsqueda */
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: var(--input-color);
-    color: var(--text-color-secondary);
-    border: 1px solid var(--hover-color);
-    padding: 8px 15px;
-    border-radius: 20px;
-    cursor: pointer;
-    font-size: 0.9em;
+.search-group svg {
+    width: 20px; 
+    height: 20px;
 }
 
 /* Vista previa de la imagen */
 .image-preview-container {
     position: absolute;
-    bottom: 120px; /* Arriba del search-group */
+    bottom: 120px; 
     left: 50%;
     transform: translateX(-50%);
     background-color: var(--input-color);
@@ -229,87 +213,96 @@ body {
     align-items: center;
     justify-content: space-between;
 }
-.image-file-info {
+
+/* ========================================================================= */
+/* 5. MENÚ FLOTANTE (Word/Excel)                                             */
+/* ========================================================================= */
+.tools-menu {
+    position: absolute;
+    background-color: var(--surface-color);
+    border: 1px solid var(--hover-color);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    z-index: 1000; 
+    min-width: 180px;
+    padding: 5px;
+}
+
+.tool-option {
     display: flex;
     align-items: center;
-    overflow: hidden;
-}
-#imagePreview {
-    width: 40px;
-    height: 40px;
-    object-fit: cover;
-    border-radius: 5px;
-    margin-right: 10px;
-}
-.file-name-display {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    gap: 10px;
+    padding: 10px 15px;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background-color 0.15s;
     color: var(--text-color-secondary);
-    font-size: 0.9em;
 }
 
 /* ========================================================================= */
-/* 5. ESTILOS DE CHAT Y ACCIONES DE IA                                       */
+/* 6. ESTILOS DE CHAT Y ACCIONES DE IA (Corregir tamaño de iconos)           */
 /* ========================================================================= */
 
 .chat-message {
     margin-bottom: 25px;
-    /* ... (rest of chat message styles) ... */
+    padding: 0 20px; 
+    color: var(--text-color);
+    max-width: 80%; /* Asegura que el contenido no ocupe todo el ancho */
+}
+
+.chat-ia p {
+    margin-bottom: 10px;
 }
 
 .ia-actions {
     display: flex;
     align-items: center;
     margin-top: 15px;
-    padding: 5px;
-    background-color: var(--input-color); /* Fondo oscuro para la barra de acciones */
-    border-radius: 20px;
+    padding: 8px 10px; /* Tamaño de la burbuja que contiene los iconos */
+    background-color: var(--input-color); 
+    border-radius: 25px;
     width: max-content;
-    position: relative;
-    z-index: 5;
+    gap: 5px; 
+    position: relative; /* Necesario para el tooltip */
 }
 
 .action-btn {
-    /* ... (rest of action button styles) ... */
+    background: none;
+    border: none;
+    color: var(--text-color-secondary);
+    cursor: pointer;
+    padding: 8px; 
+    border-radius: 50%;
+    transition: background-color 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative; 
 }
 
-/* Tooltip (Texto flotante como "Respuesta correcta") */
-.tooltip-text {
-    visibility: hidden;
-    opacity: 0;
-    /* ... (posición y otros estilos) ... */
+/* Soluciona el problema de "emojis muy grandes" */
+.action-btn svg {
+    width: 20px; 
+    height: 20px;
+    stroke-width: 2;
+}
+
+.action-btn:hover {
+    background-color: var(--hover-color);
+    color: var(--text-color);
+}
+
+.action-btn:hover::after {
+    content: attr(title); 
+    position: absolute;
+    bottom: 110%; 
+    left: 50%;
+    transform: translateX(-50%);
     background-color: rgba(0, 0, 0, 0.8); 
     color: #fff;
     padding: 5px 10px;
     border-radius: 6px;
-    position: absolute;
-    bottom: 125%; 
-    left: 50%;
-    transform: translateX(-50%);
     white-space: nowrap;
-    transition: opacity 0.3s;
-}
-
-.action-btn:hover .tooltip-text {
-    visibility: visible;
-    opacity: 1;
-}
-
-/* Aviso de respuesta detenida (Estrella/Diamante) */
-.stop-notice {
-    display: inline-flex;
-    align-items: center;
-    background-color: transparent;
-    color: var(--text-color-secondary);
-    padding: 6px 12px;
-    border-radius: 18px;
     font-size: 0.9em;
-}
-
-.stop-icon {
-    color: #3B82F6; /* Azul brillante para el diamante */
-    font-size: 1.2em;
-    line-height: 1;
-    margin-right: 5px;
+    z-index: 1001;
 }
