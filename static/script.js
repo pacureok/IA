@@ -9,7 +9,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const newChatBtn = document.getElementById('newChatBtn');
     const historyList = document.getElementById('historyList');
     const chatWindow = document.getElementById('chatWindow');
-    const httpsAiBtn = document.getElementById('httpsAiBtn');
     
     // Menús contextuales
     const historyOptionsMenu = document.getElementById('historyOptionsMenu');
@@ -26,8 +25,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const imagePreview = document.getElementById('imagePreview');
     const removeImageBtn = document.getElementById('removeImageBtn');
 
+    // Elementos TTS
+    const ttsFloatingBtn = document.getElementById('ttsFloatingBtn');
+    const ttsIconSpeaker = document.getElementById('ttsIconSpeaker');
+    const ttsIconPause = document.getElementById('ttsIconPause');
+
     // ============================================================
-    // 2. ESTRUCTURA DE DATOS
+    // 2. ESTRUCTURA DE DATOS Y ESTADO
     // ============================================================
     let currentChatId = null;
     let chats = [
@@ -38,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 { type: 'user', text: "Dame un plan de marketing para mi canal de YouTube." },
                 { 
                     type: 'ia', 
-                    text: "Un excelente plan para un canal de YouTube debe centrarse en la creación de contenido de alta calidad y la optimización SEO. 🚀 ¡A crecer! 😄", 
+                    text: "Un excelente plan para un canal de YouTube debe centrarse en la creación de contenido de alta calidad y la optimización SEO. El uso de miniaturas atractivas y títulos optimizados es crucial para el crecimiento. 🚀 ¡A crecer! 😄", 
                     imageTopic: "marketing digital",
                     sources: ["youtube.com", "blogmarketing.net", "seo-tools.org"]
                 }
@@ -46,13 +50,97 @@ document.addEventListener('DOMContentLoaded', () => {
         },
     ];
 
+    // Variables de estado TTS
+    let isReading = false;
+    let currentUtterance = null; 
+    const synth = window.speechSynthesis;
+
     // ============================================================
-    // 3. FUNCIONES DE MANEJO DE VISTAS
+    // 3. FUNCIONES DE LECTURA DE VOZ (TTS)
+    // ============================================================
+
+    function startTTS(text) {
+        if (!synth) {
+            console.warn("Tu navegador no soporta la API de Web Speech (TTS).");
+            return;
+        }
+
+        stopTTS(); // Detiene cualquier lectura previa
+        
+        currentUtterance = new SpeechSynthesisUtterance(text);
+        
+        // Configuración de la voz (Busca voz en español si está disponible)
+        synth.onvoiceschanged = () => {
+            const voices = synth.getVoices();
+            const esVoice = voices.find(voice => voice.lang.startsWith('es-'));
+            if (esVoice) {
+                currentUtterance.voice = esVoice;
+            }
+        };
+
+        // Si las voces ya están cargadas, busca inmediatamente
+        if (synth.getVoices().length > 0) {
+            const voices = synth.getVoices();
+            const esVoice = voices.find(voice => voice.lang.startsWith('es-'));
+            if (esVoice) {
+                currentUtterance.voice = esVoice;
+            }
+        }
+        
+        currentUtterance.onstart = () => {
+            isReading = true;
+            ttsFloatingBtn.classList.remove('hidden');
+            ttsIconSpeaker.style.display = 'none';
+            ttsIconPause.style.display = 'block';
+        };
+
+        currentUtterance.onend = () => {
+            stopTTS();
+        };
+
+        synth.speak(currentUtterance);
+    }
+    
+    function pauseTTS() {
+        if (synth.speaking && !synth.paused) {
+            synth.pause();
+            isReading = false;
+            ttsIconSpeaker.style.display = 'block';
+            ttsIconPause.style.display = 'none';
+        }
+    }
+    
+    function resumeTTS() {
+        if (synth.paused) {
+            synth.resume();
+            isReading = true;
+            ttsIconSpeaker.style.display = 'none';
+            ttsIconPause.style.display = 'block';
+        }
+    }
+    
+    function stopTTS() {
+        if (synth.speaking || synth.paused) {
+            synth.cancel();
+        }
+        isReading = false;
+        currentUtterance = null;
+        ttsFloatingBtn.classList.add('hidden');
+        ttsIconSpeaker.style.display = 'block';
+        ttsIconPause.style.display = 'none';
+    }
+
+
+    // ============================================================
+    // 4. FUNCIONES DE MANEJO DE VISTAS
     // ============================================================
 
     function toggleSidebar() {
         sidebar.classList.toggle('open');
+        // Mueve la barra de búsqueda y el botón flotante si el sidebar está abierto/cerrado
         mainContentWrapper.classList.toggle('sidebar-open');
+        document.getElementById('searchSection').style.left = sidebar.classList.contains('open') ? 'var(--sidebar-width)' : '0';
+        // En móvil, la barra flotante queda fija a la izquierda (CSS se encarga de esto)
     }
 
     function loadHistory() {
@@ -108,6 +196,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         chatWindow.innerHTML = '';
+        stopTTS(); // Detener TTS al cambiar de chat
         
         if (!chat || chat.messages.length === 0) {
             chatWindow.innerHTML = `<h1 class="main-title">Hola, <span class="user-name">YouTuber pacure</span></h1>`;
@@ -125,13 +214,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const messageDiv = document.createElement('div');
         messageDiv.className = `chat-message chat-${msg.type}`;
 
+        // 1. Avatar (SOLO para mensajes IA)
+        if (msg.type === 'ia') {
+            const avatarDiv = document.createElement('div');
+            avatarDiv.className = 'ia-avatar';
+            // Usa el icono estático que indicaste
+            avatarDiv.innerHTML = `<img src="/static/imang/imagres.ico" alt="PACURE IA Icon">`;
+            messageDiv.appendChild(avatarDiv);
+        }
+        
         const textElement = document.createElement('p');
         textElement.innerHTML = msg.text.replace(/\n/g, '<br>');
         messageDiv.appendChild(textElement);
 
         if (msg.type === 'ia') {
             
-            // Lógica para el Reproductor de Música
+            // Lógica para el Reproductor de Música (si existe)
             if (msg.musicUrl) {
                 appendMusicPlayer(msg.musicUrl, messageDiv);
             }
@@ -141,6 +239,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 fetchAndDisplayImage(msg.imageTopic, messageDiv); 
             }
             
+            // LÓGICA DE TTS EN LA RESPUESTA
+            const ttsControlsDiv = document.createElement('div');
+            ttsControlsDiv.className = 'tts-controls';
+            
+            const speakBtn = document.createElement('button');
+            speakBtn.textContent = 'Volver a escuchar TTS';
+            speakBtn.addEventListener('click', () => startTTS(msg.text));
+            ttsControlsDiv.appendChild(speakBtn);
+            
+            messageDiv.appendChild(ttsControlsDiv);
+
+
             // Lógica para mostrar Fuentes Consultadas
             if (msg.sources && msg.sources.length > 0) {
                 const sourcesDiv = document.createElement('div');
@@ -160,15 +270,20 @@ document.addEventListener('DOMContentLoaded', () => {
             actionsDiv.className = 'ia-actions';
             actionsDiv.innerHTML = `
                  <button class="action-btn" title="Respuesta correcta"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7 13.5L10.5 17L17 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+                 <button class="action-btn" title="Respuesta incorrecta"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="20" height="20"><path d="M17 7L7 17M7 7L17 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
                  <button class="action-btn" title="Rehacer"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21.5 2V8M21.5 8H15.5M21.5 8C19.0348 4.3986 15.176 2 11 2C5.47715 2 1 6.47715 1 12C1 17.5228 5.47715 22 11 22C15.9392 22 20.0461 18.2575 21.0969 13.4357" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+                 <button class="action-btn" title="Compartir y exportar"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="20" height="20"><path d="M4 12V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V12M12 2V15M12 2L8 6M12 2L16 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
                  <button class="action-btn" title="Copiar respuesta"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 6H6C4.89543 6 4 6.89543 4 8V20C4 21.1046 4.89543 22 6 22H16C17.1046 22 18 21.1046 18 20V16M16 2V10M16 10H8V16H16V10ZM16 10L20 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
             `;
             messageDiv.appendChild(actionsDiv);
+            
+            // INICIA AUTOMÁTICAMENTE LA LECTURA DE LA NUEVA RESPUESTA
+            startTTS(msg.text); 
         }
 
         chatWindow.appendChild(messageDiv);
     }
-
+    
     function appendMusicPlayer(musicUrl, messageContainer) {
         const audioDiv = document.createElement('div');
         audioDiv.className = 'music-player';
@@ -200,7 +315,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const query = searchInput.value.trim();
         if (!query) return;
 
-        // 1. Recolección de archivos adjuntos (FormData)
+        // 1. Detener TTS al enviar nueva consulta
+        stopTTS();
+        
+        // 2. Recolección de archivos adjuntos (FormData)
         const formData = new FormData();
         formData.append('query', query);
         
@@ -214,7 +332,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         
-        // 2. Determinar o crear el chat actual
+        // 3. Determinar o crear el chat actual
         let chatToUpdate = chats.find(c => c.id === currentChatId);
         if (!chatToUpdate || chatToUpdate.messages.length === 0) {
             const newId = chats.length > 0 ? chats[chats.length - 1].id + 1 : 1;
@@ -224,19 +342,21 @@ document.addEventListener('DOMContentLoaded', () => {
             loadChat(newId);
         }
 
-        // 3. Agrega el mensaje del usuario
+        // 4. Agrega el mensaje del usuario
         chatToUpdate.messages.push({ type: 'user', text: query, files: filesInfo });
         
-        // 4. Muestra mensaje de "escribiendo"
+        // 5. Muestra mensaje de "escribiendo"
         const typingMessage = { type: 'ia', text: "PACURE IA está escribiendo... 🤖" };
         chatToUpdate.messages.push(typingMessage);
         loadChat(chatToUpdate.id);
         
-        // 5. Llama al backend Flask
+        // 6. Llama al backend Flask (SIMULADO)
         try {
+            // Nota: En un entorno real, descomentarías la llamada fetch y adaptarías la simulación
+            /*
             const response = await fetch('/api/chat', {
                 method: 'POST',
-                body: formData // Envía el FormData con query y archivos
+                body: formData 
             });
             
             if (!response.ok) {
@@ -244,8 +364,20 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             const data = await response.json();
+            */
+
+            // SIMULACIÓN DE RESPUESTA REAL
+            await new Promise(resolve => setTimeout(resolve, 1500)); // Simula tiempo de respuesta
+            const data = {
+                text: `¡Claro que sí! Tu consulta sobre "${query.substring(0, 20)}..." ha sido procesada. Como creador de contenido, te recomiendo enfocarte en la consistencia de tu marca y la interacción con tu audiencia.`,
+                imageTopic: query.includes('música') ? undefined : 'contenido de video',
+                sources: ["google.com", "pacureia.dev"],
+                musicUrl: query.includes('música') ? '/static/music_output/music_simulado.mp3' : undefined
+            };
+            // FIN SIMULACIÓN
+
             
-            // 6. Reemplaza el mensaje de tipeo con la respuesta real
+            // 7. Reemplaza el mensaje de tipeo con la respuesta real
             chatToUpdate.messages.pop(); 
             
             chatToUpdate.messages.push({ 
@@ -262,7 +394,7 @@ document.addEventListener('DOMContentLoaded', () => {
             chatToUpdate.messages.push({ type: 'ia', text: `Lo siento, el backend falló. Error: ${error.message}. Asegúrate de que Flask esté corriendo. 😥` });
         }
         
-        // 7. Recarga la vista y limpia
+        // 8. Recarga la vista y limpia
         loadChat(chatToUpdate.id); 
         searchInput.value = '';
         clearFileInput();
@@ -276,11 +408,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ============================================================
-    // 4. MANEJO DE EVENTOS DEL DOM
+    // 5. MANEJO DE EVENTOS DEL DOM
     // ============================================================
 
     menuToggle.addEventListener('click', toggleSidebar);
     sidebarOptionsBtn.addEventListener('click', toggleSidebar); 
+    
+    // Manejo del botón flotante de TTS
+    ttsFloatingBtn.addEventListener('click', () => {
+        if (isReading) {
+            pauseTTS();
+        } else {
+            resumeTTS();
+        }
+    });
+
     newChatBtn.addEventListener('click', () => {
         const newId = chats.length > 0 ? chats[chats.length - 1].id + 1 : 1;
         const newChat = { id: newId, title: "Nueva Conversación", messages: [] };
@@ -289,12 +431,6 @@ document.addEventListener('DOMContentLoaded', () => {
         loadChat(newId);
     });
     
-    // Botón HTTPS AI
-    httpsAiBtn.addEventListener('click', () => {
-        alert("Redirigiendo a la página de Solicitudes HTTPS AI. Aquí puedes interactuar con la IA mediante peticiones estructuradas (Subpágina sin interfaz de chat).");
-        // En una app real: window.location.href = '/https-ai-interface'; 
-    });
-
     searchBtn.addEventListener('click', handleNewQuery);
     searchInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
@@ -319,13 +455,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const action = option.textContent.trim();
         const chat = chats.find(c => c.id == chatId);
         
-        alert(`Simulando acción: "${action}" en chat: ${chat.title}`);
-        
         if (action === "Borrar") {
             chats = chats.filter(c => c.id != chatId);
             loadHistory();
             loadChat(chats.length > 0 ? chats[chats.length - 1].id : null);
+        } else {
+             alert(`Simulando acción: "${action}" en chat: ${chat.title}`);
         }
+        
         historyOptionsMenu.classList.add('hidden');
     });
 
@@ -396,7 +533,7 @@ document.addEventListener('DOMContentLoaded', () => {
     removeImageBtn.addEventListener('click', clearFileInput);
     
     // ============================================================
-    // 5. INICIALIZACIÓN
+    // 6. INICIALIZACIÓN
     // ============================================================
     loadHistory(); 
 });
