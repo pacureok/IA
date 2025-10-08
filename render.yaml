@@ -1,0 +1,14 @@
+# render.yaml (Ejemplo de configuración para servicios con buildpacks o runtime env)
+# Esto le dice a Render cómo construir tu entorno.
+
+# services:
+#   - type: web
+#     name: pacure-ia
+#     # El comando de inicio que ya usas (gunicorn o flask run)
+#     # startCommand: gunicorn app:app
+#     envVars:
+#       - key: PATH
+#         value: /usr/bin/ffmpeg
+#     # Este es un método MÁS COMPLEJO que Render podría no soportar directamente
+#     # en su configuración por defecto, sino que requeriría un Dockerfile.
+#     # Es mucho más fácil usar un buildpack que ya lo tenga (ej: un buildpack de Node/Python con apt).
