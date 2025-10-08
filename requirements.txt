@@ -1,0 +1,6 @@
+Flask
+Flask-Cors
+requests
+beautifulsoup4
+wikipedia
+gunicorn  # ¡Necesario para que Render corra tu servidor!
