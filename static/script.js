@@ -2,10 +2,13 @@
 let speaking = false;
 let currentChatId = null; 
 let history = {}; 
-let uploadedImageBase64 = null; // CLAVE: Base64 de la imagen subida
+let uploadedImageBase64 = null; // Base64 de la imagen subida
+let isToolMode = false;         // Bandera para saber si estamos creando un documento
+let currentTool = null;         // 'word' o 'excel'
+let savedDocuments = [];      // Almacena los apuntes creados localmente
 
-// Inicializa el historial al cargar la página
-document.addEventListener('DOMContentLoaded', loadHistory);
+// Inicializa el historial y los documentos al cargar la página
+document.addEventListener('DOMContentLoaded', loadInitialData);
 
 
 // --- ICONOS SVG (Necesarios para la barra de acciones y fuentes) ---
@@ -22,30 +25,12 @@ const SOURCE_ICON_SVG = '<svg class="source-icon" viewBox="0 0 24 24" fill="none
 const DROPDOWN_ICON_SVG = '<svg class="source-dropdown-btn" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7 10L12 15L17 10H7Z" fill="currentColor"/></svg>';
 
 
-// --- LÓGICA DEL SLIDER (BARRA LATERAL) ---
+// --- LÓGICA DE INICIALIZACIÓN Y CACHÉ ---
 
-function toggleSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    const wrapper = document.getElementById('mainContentWrapper');
-    const menuToggle = document.getElementById('menuToggle');
-    
-    const isOpen = sidebar.classList.toggle('open');
-    wrapper.classList.toggle('sidebar-open', isOpen);
-    menuToggle.classList.toggle('sidebar-open', isOpen);
-
-    menuToggle.innerHTML = isOpen ? 
-        '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' : 
-        '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'; 
-}
-
-
-// --- LÓGICA DE HISTORIAL Y CACHÉ ---
-
-function loadHistory() {
+function loadInitialData() {
     const savedHistory = localStorage.getItem('chatHistory');
     if (savedHistory) {
         history = JSON.parse(savedHistory);
-        
         const chatIds = Object.keys(history).sort((a, b) => a > b ? -1 : 1);
         if (chatIds.length > 0) {
             loadChat(chatIds[0]);
@@ -55,6 +40,10 @@ function loadHistory() {
     } else {
         startNewChat();
     }
+    
+    // Cargar documentos guardados
+    const savedDocs = localStorage.getItem('savedDocuments');
+    if (savedDocs) savedDocuments = JSON.parse(savedDocs);
 }
 
 function saveHistory() {
@@ -76,7 +65,7 @@ function renderHistoryList() {
         const chat = history[id];
         const item = document.createElement('div');
         item.className = `history-item ${id === currentChatId ? 'active' : ''}`;
-        const displayTitle = chat.title || (chat.messages[0] ? chat.messages[0].content.substring(0, 30) + '...' : 'Nuevo Chat');
+        const displayTitle = chat.title || (chat.messages[0] ? chat.messages[0].content.replace(/<[^>]*>?/gm, "").substring(0, 30) + '...' : 'Nuevo Chat');
         item.textContent = displayTitle;
         item.onclick = () => loadChat(id);
         historyList.appendChild(item);
@@ -102,7 +91,7 @@ function generateTitle(firstQuery) {
 }
 
 
-// --- FUNCIONES DE TTS (Text-to-Speech) ---
+// --- LÓGICA DE TTS (Text-to-Speech) ---
 
 function stopSpeaking(manuallyStopped = true) {
     if (speaking && 'speechSynthesis' in window) {
@@ -111,7 +100,8 @@ function stopSpeaking(manuallyStopped = true) {
         
         if (manuallyStopped && currentChatId) {
             const messages = history[currentChatId].messages;
-            if (messages.length > 0 && messages[messages.length - 1].sender === 'ia') {
+            // Solo marca como detenido si el último mensaje es de la IA y no es el menú de herramientas
+            if (messages.length > 0 && messages[messages.length - 1].sender === 'ia' && !messages[messages.length - 1].isToolPrompt) {
                 messages[messages.length - 1].stopped = true;
                 renderChatWindow(messages);
                 saveHistory();
@@ -152,10 +142,10 @@ function speakText(text) {
     }
 }
 
-// --- FUNCIÓN DE MANEJO DE IMAGENES ---
+
+// --- LÓGICA DE IMAGENES ---
 
 function handleImageUpload(event) {
-    // Solo manejamos el primer archivo (máx 10 en HTML por si el backend lo permite)
     const file = event.target.files[0]; 
     const previewContainer = document.getElementById('imagePreviewContainer');
     const previewImg = document.getElementById('imagePreview');
@@ -166,7 +156,6 @@ function handleImageUpload(event) {
             return;
         }
 
-        // Limitar tamaño (opcional)
         if (file.size > 10 * 1024 * 1024) { 
              alert('La imagen es demasiado grande (máx 10MB).');
              return;
@@ -174,7 +163,6 @@ function handleImageUpload(event) {
 
         const reader = new FileReader();
         reader.onload = function(e) {
-            // Guarda la imagen en Base64 para enviarla a Flask
             uploadedImageBase64 = e.target.result; 
             previewImg.src = uploadedImageBase64;
             previewContainer.classList.remove('hidden');
@@ -188,13 +176,135 @@ function handleImageUpload(event) {
 
 function removeImage() {
     uploadedImageBase64 = null;
-    document.getElementById('imageInput').value = ''; // Resetear el input file
+    document.getElementById('imageInput').value = ''; 
     document.getElementById('imagePreviewContainer').classList.add('hidden');
     document.getElementById('imagePreview').src = '';
 }
 
 
-// --- FUNCIONES DE ACCIÓN DE LA IA Y FUENTES ---
+// --- LÓGICA DE HERRAMIENTAS Y APUNTES ---
+
+function toggleToolsMenu() {
+    const menu = document.getElementById('toolsMenu');
+    // Si ya está abierto, lo cierro, si no, lo abro
+    const isHidden = menu.classList.toggle('hidden');
+    
+    // Ajustar posición si se está abriendo
+    if (!isHidden) {
+        const toolsBtn = document.getElementById('toolsBtn');
+        const rect = toolsBtn.getBoundingClientRect();
+        // Alinea el menú justo a la izquierda del botón toolsBtn, ajustando el ancho del menú (200px)
+        menu.style.left = (rect.left - 200) + 'px'; 
+    }
+}
+
+function selectTool(toolType) {
+    currentTool = toolType;
+    isToolMode = true;
+    toggleToolsMenu(); 
+
+    const searchInput = document.getElementById('searchInput');
+    
+    let toolName = toolType === 'word' ? 'Apunte/Word' : 'Tabla/Excel';
+    searchInput.placeholder = `Escribe el contenido para tu ${toolName}...`;
+    
+    // Simula la pregunta de la IA al usuario
+    const iaPrompt = { 
+        sender: 'ia', 
+        content: `<h3 class="result-title">Herramienta de Creación: ${toolName}</h3><p class="result-text">Perfecto. Dime el **título y el contenido** que deseas incluir en tu nuevo ${toolName}. Usa saltos de línea para un mejor formato.</p>`,
+        stopped: false, 
+        isToolPrompt: true, // Marca para no mostrar acciones de IA
+        sources: [] 
+    };
+    history[currentChatId].messages.push(iaPrompt);
+    renderChatWindow(history[currentChatId].messages);
+    saveHistory();
+}
+
+function createStyledDocument(query) {
+    const iaToolMessage = { 
+        sender: 'ia', 
+        content: `<div class="status-message"><h3 class="result-title">Procesando Herramienta</h3><p class="result-text">La app dice: **CREANDO...** Analizando tu texto y dándole formato de apunte con estilo.</p></div>`,
+        stopped: false, 
+        isToolResult: true,
+        sources: [] 
+    };
+    history[currentChatId].messages.push(iaToolMessage);
+    renderChatWindow(history[currentChatId].messages);
+    
+    // Simulación de delay para el "CREANDO..."
+    setTimeout(() => {
+        
+        // 1. Simular análisis y extracción de contenido
+        const lines = query.split('\n');
+        let title = lines[0].trim();
+        let content = lines.slice(1).join('\n').trim();
+        
+        // Lógica simple para titular y formatear
+        if (title.length > 50) {
+            title = title.substring(0, 50) + '...';
+        } else if (!title) {
+            title = `Nuevo ${currentTool === 'word' ? 'Apunte' : 'Tabla'} sin Título`;
+        }
+        
+        if (!content) {
+            content = "*(Contenido vacío, por favor añade más texto en tu siguiente consulta para el apunte.)*";
+        }
+
+        const docId = Date.now().toString();
+        const newDoc = {
+            id: docId,
+            type: currentTool,
+            title: title,
+            content: content,
+            timestamp: new Date().toLocaleTimeString()
+        };
+        
+        savedDocuments.push(newDoc);
+        localStorage.setItem('savedDocuments', JSON.stringify(savedDocuments)); // Guardar en caché
+
+        // 2. Generar el HTML del documento creado
+        const docHTML = `
+            <div class="created-document">
+                <div class="document-title">
+                    ${newDoc.type === 'word' ? '📝 ' : '📊 '} 
+                    ${newDoc.title}
+                </div>
+                <div class="document-content">
+                    ${newDoc.content.replace(/\n/g, '<br>')}
+                </div>
+                <div class="document-actions">
+                    <button onclick="downloadDocument('${docId}')">Descargar .${newDoc.type}</button>
+                    <button onclick="alert('Función de edición no implementada. Contenido guardado en caché.');">Editar</button>
+                </div>
+                <p style="font-size: 0.8em; color: #aaa; margin-top: 10px;">Guardado localmente en caché.</p>
+            </div>
+        `;
+
+        // 3. Reemplazar el mensaje "CREANDO..." con el resultado final
+        iaToolMessage.content = docHTML;
+        renderChatWindow(history[currentChatId].messages);
+        
+        // 4. Salir del modo herramienta
+        isToolMode = false;
+        currentTool = null;
+        document.getElementById('searchInput').placeholder = "Escribe o habla tu consulta...";
+        saveHistory(); 
+        
+    }, 1500); // 1.5 segundos de simulación de carga
+}
+
+// Simulación de descarga
+function downloadDocument(docId) {
+    const doc = savedDocuments.find(d => d.id === docId);
+    if (doc) {
+        let content = `Título: ${doc.title}\nTipo: ${doc.type}\nFecha: ${doc.timestamp}\n\nContenido:\n${doc.content}`;
+        alert(`Simulando descarga de .${doc.type} (El contenido es el siguiente):\n\n${content}`);
+    }
+}
+
+
+// --- FUNCIONES DE CHAT Y RENDERIZADO ---
 
 function toggleSourceDropdown(element) {
     const dropdown = element.querySelector('.source-dropdown');
@@ -205,121 +315,32 @@ function toggleSourceDropdown(element) {
 }
 
 function createSourceBar(sources) {
+    // Lógica para crear la barra de fuentes
     if (!sources || sources.length === 0) return '';
-    
     let html = '<div class="sources-container">';
     const visibleSources = sources.slice(0, 1);
     const hiddenSources = sources.slice(1);
 
     visibleSources.forEach(source => {
-        // Usa el nombre de la fuente o el host si es una URL válida
         let sourceName = source.name || (source.url ? new URL(source.url).hostname.replace(/(www\.)?/g, '') : 'Fuente');
-        
-        html += `
-            <a href="${source.url}" target="_blank" class="source-item">
-                ${SOURCE_ICON_SVG}
-                ${sourceName}
-            </a>
-        `;
+        html += `<a href="${source.url}" target="_blank" class="source-item">${SOURCE_ICON_SVG} ${sourceName}</a>`;
     });
 
     if (hiddenSources.length > 0) {
         let dropdownItems = '';
         hiddenSources.forEach(source => {
-            dropdownItems += `
-                <a href="${source.url}" target="_blank" class="source-link">
-                    ${source.name} 
-                </a>
-            `;
+            dropdownItems += `<a href="${source.url}" target="_blank" class="source-link">${source.name}</a>`;
         });
         
-        html += `
-            <div class="more-options" onclick="toggleSourceDropdown(this)">
-                <span class="source-item">
-                    ${DROPDOWN_ICON_SVG}
-                    ${hiddenSources.length} más
-                </span>
-                <div class="source-dropdown">
-                    ${dropdownItems}
-                </div>
+        html += `<div class="more-options" onclick="toggleSourceDropdown(this)">
+                <span class="source-item">${DROPDOWN_ICON_SVG}${hiddenSources.length} más</span>
+                <div class="source-dropdown">${dropdownItems}</div>
             </div>
         `;
     }
 
     html += '</div>';
     return html;
-}
-
-// ... (reListen, copyResponse, redoSearch, toggleMenu, createActionsBar - SIN CAMBIOS) ...
-
-
-function reListen(chatId, messageIndex) {
-    const chat = history[chatId];
-    if (!chat || !chat.messages[messageIndex]) return;
-
-    const content = chat.messages[messageIndex].content;
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = content;
-    const textToRead = tempDiv.querySelector('.result-text') ? 
-                       tempDiv.querySelector('.result-text').textContent : 
-                       tempDiv.textContent;
-
-    speakText(textToRead);
-    document.querySelectorAll('.options-menu').forEach(menu => menu.style.display = 'none');
-}
-
-function copyResponse(chatId, messageIndex) {
-    const chat = history[chatId];
-    if (!chat || !chat.messages[messageIndex]) return;
-
-    const content = chat.messages[messageIndex].content;
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = content;
-    const textToCopy = tempDiv.textContent || tempDiv.innerText;
-
-    navigator.clipboard.writeText(textToCopy).then(() => {
-        alert('Respuesta copiada al portapapeles!');
-    }).catch(err => {
-        console.error('Error al copiar: ', err);
-    });
-}
-
-function redoSearch(chatId, messageIndex) {
-    const chat = history[chatId];
-    if (!chat) return;
-
-    let userQuery = '';
-    let userMessageIndex = -1;
-    for (let i = messageIndex - 1; i >= 0; i--) {
-        if (chat.messages[i].sender === 'user') {
-            userQuery = chat.messages[i].content;
-            userMessageIndex = i;
-            break;
-        }
-    }
-
-    if (userQuery) {
-        document.getElementById('searchInput').value = userQuery;
-        if (userMessageIndex !== -1) {
-             chat.messages.splice(userMessageIndex, 2); 
-        } else {
-             chat.messages.splice(messageIndex, 1);
-        }
-       
-        saveHistory();
-        renderChatWindow(chat.messages);
-        buscar(); 
-    } else {
-        alert('No se encontró una consulta anterior para rehacer.');
-    }
-}
-
-function toggleMenu(element) {
-    const menu = element.querySelector('.options-menu');
-    document.querySelectorAll('.options-menu').forEach(m => {
-        if (m !== menu) m.style.display = 'none';
-    });
-    menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
 }
 
 function createActionsBar(chatId, messageIndex) {
@@ -362,8 +383,70 @@ function createActionsBar(chatId, messageIndex) {
     `;
 }
 
+function reListen(chatId, messageIndex) {
+    const chat = history[chatId];
+    if (!chat || !chat.messages[messageIndex]) return;
+    const content = chat.messages[messageIndex].content;
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = content;
+    const textToRead = tempDiv.querySelector('.result-text') ? 
+                       tempDiv.querySelector('.result-text').textContent : 
+                       tempDiv.textContent;
+    speakText(textToRead);
+    document.querySelectorAll('.options-menu').forEach(menu => menu.style.display = 'none');
+}
 
-// --- FUNCIÓN PARA RENDERIZAR MENSAJES EN LA PANTALLA ---
+function copyResponse(chatId, messageIndex) {
+    const chat = history[chatId];
+    if (!chat || !chat.messages[messageIndex]) return;
+    const content = chat.messages[messageIndex].content;
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = content;
+    const textToCopy = tempDiv.textContent || tempDiv.innerText;
+    navigator.clipboard.writeText(textToCopy).then(() => {
+        alert('Respuesta copiada al portapapeles!');
+    });
+}
+
+function redoSearch(chatId, messageIndex) {
+    const chat = history[chatId];
+    if (!chat) return;
+
+    let userQuery = '';
+    let userMessageIndex = -1;
+    for (let i = messageIndex - 1; i >= 0; i--) {
+        if (chat.messages[i].sender === 'user') {
+            userQuery = chat.messages[i].content;
+            userMessageIndex = i;
+            break;
+        }
+    }
+
+    if (userQuery) {
+        document.getElementById('searchInput').value = userQuery;
+        // Elimina el par de mensajes (usuario y IA)
+        if (userMessageIndex !== -1) {
+             chat.messages.splice(userMessageIndex, 2); 
+        } else {
+             chat.messages.splice(messageIndex, 1);
+        }
+       
+        saveHistory();
+        renderChatWindow(chat.messages);
+        buscar(); 
+    } else {
+        alert('No se encontró una consulta anterior para rehacer.');
+    }
+}
+
+function toggleMenu(element) {
+    const menu = element.querySelector('.options-menu');
+    document.querySelectorAll('.options-menu').forEach(m => {
+        if (m !== menu) m.style.display = 'none';
+    });
+    menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+}
+
 function renderChatWindow(messages) {
     const chatWindow = document.getElementById('chatWindow');
     chatWindow.innerHTML = '';
@@ -382,7 +465,7 @@ function renderChatWindow(messages) {
              stopNoticeContainer.className = 'stop-notice-container'; 
              stopNoticeContainer.innerHTML = `
                 <div class="stop-notice">
-                    <img src="/static/img/imagres.ico" class="stop-icon" alt="stop icon">
+                    <svg class="stop-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2Z" fill="#3B82F6"/><path d="M12 17L17 12L12 7V17Z" fill="white"/></svg>
                     Detuviste esta respuesta
                 </div>
              `;
@@ -394,9 +477,7 @@ function renderChatWindow(messages) {
             
             let finalContent = msg.content;
             
-            // Mostrar imagen si es un mensaje de usuario con imagen
             if (msg.sender === 'user' && msg.image) {
-                // La imagen ya está guardada como Base64 en el historial
                 finalContent = `<div class="user-image-container"><img src="${msg.image}" alt="Imagen subida" class="user-uploaded-image"></div>` + finalContent;
             }
 
@@ -406,8 +487,11 @@ function renderChatWindow(messages) {
                     finalContent = sourceBar + finalContent;
                 }
                 
-                const actionsBar = createActionsBar(currentChatId, index);
-                finalContent += actionsBar;
+                // Muestra la barra de acciones solo si NO es un prompt de herramienta
+                if (!msg.isToolPrompt && !msg.isToolResult) { 
+                    const actionsBar = createActionsBar(currentChatId, index);
+                    finalContent += actionsBar;
+                }
             }
 
             bubble.innerHTML = finalContent;
@@ -433,73 +517,70 @@ async function buscar() {
         return;
     }
 
-    // 1. Añadir el mensaje del USUARIO al historial
+    // 1. LÓGICA DE HERRAMIENTAS: Si estamos en modo herramienta, creamos el documento
+    if (isToolMode && currentTool) {
+        const userMessage = { 
+            sender: 'user', 
+            content: query, 
+            image: null
+        };
+        history[currentChatId].messages.push(userMessage);
+        renderChatWindow(history[currentChatId].messages);
+        searchInput.value = ''; // Limpiar input después del usuario
+        removeImage();
+
+        createStyledDocument(query);
+        return; // Salimos de la función sin contactar al servidor
+    }
+
+
+    // 2. Ejecución Normal (Chat/Análisis de Imagen)
+    
+    // Añadir el mensaje del USUARIO al historial
     const userMessage = { 
         sender: 'user', 
         content: query || "Consulta de imagen sin texto", 
-        image: image // Guardamos la Base64 para el historial
+        image: image 
     };
     history[currentChatId].messages.push(userMessage);
-    renderChatWindow(history[currentChatId].messages);
     
     let iaContent = '';
     let textToRead = '';
     let sources = []; 
-    let isCustomResponse = false; // Flag para respuestas que no van al servidor
+    let isCustomResponse = false; 
 
     // Reiniciamos la barra de entrada y la vista previa inmediatamente
     removeImage();
     searchInput.value = '';
 
-    // 2. Lógica de Respuestas PERSONALIZADAS (sin servidor)
-    
-    if (!image && (normalizedQuery.includes('que hace') || normalizedQuery.includes('pacure ia') ||
-        normalizedQuery.includes('genera imagen') || normalizedQuery.includes('haz una imagen'))) 
-    {
+    // Lógica de Respuestas PERSONALIZADAS (sin servidor)
+    if (!image && (normalizedQuery.includes('que hace') || normalizedQuery.includes('pacure ia'))) {
         isCustomResponse = true;
-        iaContent = `<h3 class="result-title">PACURE IA: ¿Qué Hago?</h3><p class="result-text">Soy PACURE IA... (etc.). **Ahora también puedo analizar imágenes que subas, enviándolas a mi servidor Python.**</p>`;
-        textToRead = "Soy PACURE IA... y puedo analizar imágenes.";
+        iaContent = `<h3 class="result-title">PACURE IA: ¿Qué Hago?</h3><p class="result-text">Soy PACURE IA, un asistente de chat. **Puedes preguntarme sobre cualquier tema, o usar el botón (+) para crear apuntes Word o Excel** y también puedo analizar imágenes que subas.</p>`;
+        textToRead = "Soy PACURE IA, un asistente de chat.";
     } 
-    
-    else if (!image && (normalizedQuery.includes('dueño') || normalizedQuery.includes('creador'))) 
-    {
-        isCustomResponse = true;
-        iaContent = `<h3 class="result-title">Dueño de PACURE IA</h3><p class="result-text">Soy propiedad y desarrollo de **PACURE IA DUEÑO**.</p>`;
-        textToRead = "Soy propiedad y desarrollo de PACURE IA DUEÑO.";
-    }
-    
-    else if (!image && (normalizedQuery.includes('home') || normalizedQuery.includes('inicio') || normalizedQuery.includes('principal'))) 
-    {
-        isCustomResponse = true;
-        iaContent = `<h3 class="result-title">Página Principal de PACURE IA (Home)</h3><p class="result-text">Bienvenido de vuelta. Esta es una simulación del contenido de mi página de inicio.</p>`;
-        textToRead = "Bienvenido a mi página de inicio.";
-    }
-
-    // 3. Ejecución al Servidor (Búsqueda o Análisis de Imagen)
-    if (!isCustomResponse) {
+    // Si no es respuesta personalizada, contactar al servidor
+    else {
         try {
             const response = await fetch('/buscar', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ query: query, image: image }) // Enviamos la imagen
+                body: JSON.stringify({ query: query, image: image }) 
             });
             
             const data = await response.json();
             
             if (response.ok && data.text) {
-                // Estructura el resultado
                 sources = data.external_sources || [];
                 iaContent = `
                     <div class="result-header">
                         <h3 class="result-title">${data.title}</h3>
                     </div>
                     <p class="result-text">${data.text}</p>
-                    ${data.url !== '#' ? `<a href="${data.url}" target="_blank" class="result-link">Ver fuente completa →</a>` : ''}
+                    ${data.url !== '#' && data.url ? `<a href="${data.url}" target="_blank" class="result-link">Ver fuente completa →</a>` : ''}
                 `;
-                
                 textToRead = `${data.title}. El resumen es: ${data.text}`;
             } else {
-                // Manejar error de servidor o respuesta personalizada si Flask la devuelve
                 iaContent = `<p class="error-text">❌ ${data.error || 'Error desconocido al buscar o error de servidor.'}</p>`;
                 textToRead = "Hubo un error al buscar la información.";
             }
@@ -510,7 +591,7 @@ async function buscar() {
         }
     }
     
-    // 4. Generar y mostrar la respuesta de la IA
+    // 3. Generar y mostrar la respuesta de la IA
     const iaMessage = { 
         sender: 'ia', 
         content: iaContent, 
@@ -529,8 +610,22 @@ async function buscar() {
 // --- LISTENERS DE EVENTOS ---
 
 document.addEventListener('DOMContentLoaded', () => {
-    loadHistory();
-    document.getElementById('menuToggle').addEventListener('click', toggleSidebar);
+    
+    // Lógica de Sidebar y Búsqueda
+    document.getElementById('menuToggle').addEventListener('click', () => {
+        const sidebar = document.getElementById('sidebar');
+        const wrapper = document.getElementById('mainContentWrapper');
+        const menuToggle = document.getElementById('menuToggle');
+        
+        const isOpen = sidebar.classList.toggle('open');
+        wrapper.classList.toggle('sidebar-open', isOpen);
+        menuToggle.classList.toggle('sidebar-open', isOpen);
+
+        menuToggle.innerHTML = isOpen ? 
+            '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' : 
+            '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'; 
+    });
+    
     document.getElementById('searchBtn').addEventListener('click', buscar);
     
     document.getElementById('searchInput').addEventListener('keypress', function(e) {
@@ -539,6 +634,15 @@ document.addEventListener('DOMContentLoaded', () => {
             buscar();
         }
     });
+    
+    // Listener para el botón "¿Qué hora es?" (simulación de quick query)
+    const quickQueryBtn = document.getElementById('quickQueryBtn');
+    if (quickQueryBtn) {
+        quickQueryBtn.addEventListener('click', () => {
+             document.getElementById('searchInput').value = '¿Qué hora es?';
+             buscar();
+        });
+    }
 
     // LISTENERS PARA IMAGEN
     const imageInput = document.getElementById('imageInput');
@@ -551,6 +655,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     imageInput.addEventListener('change', handleImageUpload);
     removeBtn.addEventListener('click', removeImage);
+
+    // LÓGICA DE HERRAMIENTAS
+    const toolsBtn = document.getElementById('toolsBtn');
+    const toolsMenu = document.getElementById('toolsMenu');
+    
+    toolsBtn.addEventListener('click', (e) => {
+        e.stopPropagation(); // Evita que el clic propague y cierre el menú inmediatamente
+        toggleToolsMenu();
+    });
+    
+    toolsMenu.querySelectorAll('.tool-option').forEach(option => {
+        option.addEventListener('click', () => {
+            selectTool(option.getAttribute('data-tool'));
+        });
+    });
+    
+    // Ocultar menú si el usuario hace clic fuera de la barra de búsqueda o el menú
+    document.addEventListener('click', (e) => {
+        const searchGroup = document.querySelector('.search-group');
+        if (!toolsBtn.contains(e.target) && !toolsMenu.contains(e.target) && !searchGroup.contains(e.target) && !toolsMenu.classList.contains('hidden')) {
+            toolsMenu.classList.add('hidden');
+        }
+    });
 
     // Listener para detener TTS
     const stopBtn = document.getElementById('stopSpeakerBtn');
