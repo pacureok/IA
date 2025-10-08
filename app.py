@@ -1,88 +1,69 @@
-from flask import Flask, request, jsonify, render_template
-from flask_cors import CORS
-import requests
-import wikipedia
-import re
-from wikipedia.exceptions import PageError, DisambiguationError
+import os
+import io
+import base64
+from flask import Flask, render_template, request, jsonify
+from PIL import Image, ImageStat
 
-app = Flask(__name__)
-CORS(app)
+# CONFIGURACIÓN
+app = Flask(__name__, static_folder='static', template_folder='templates')
 
-# La función clean_text ya no se usa si eliminamos BeautifulSoup, pero la mantenemos por si acaso
-def clean_text(text):
-    text = re.sub(r'\s+', ' ', text)
-    text = text.strip()
-    return text
-
-def get_time_info():
+# --- LÓGICA DE SIMULACIÓN DE IA (USANDO PILLOW) ---
+def analyze_image_pillow(base64_string, query):
+    """
+    Simula el análisis de una imagen usando la librería Pillow.
+    No es un modelo de IA real, pero demuestra el procesamiento en Python.
+    """
     try:
-        response = requests.get('http://worldtimeapi.org/api/ip', timeout=2) # Reducimos el timeout
-        if response.status_code == 200:
-            data = response.json()
-            datetime_str = data.get('datetime', '')
-            timezone = data.get('timezone', '')
-            day_of_week = data.get('day_of_week', '')
-            
-            days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
-            day_name = days[day_of_week - 1] if 1 <= day_of_week <= 7 else ''
-            
-            time_parts = datetime_str.split('T')
-            if len(time_parts) == 2:
-                date = time_parts[0]
-                time = time_parts[1].split('.')[0]
-                return f"{day_name}, {date} {time} ({timezone})"
-        return None
-    except:
-        return None
+        # Decodificar Base64
+        header, encoded = base64_string.split(',')
+        data = base64.b64decode(encoded)
+        image = Image.open(io.BytesIO(data))
+        
+        # 1. Obtener datos básicos
+        width, height = image.size
+        mode = image.mode
+        
+        # 2. Análisis de color (promedio)
+        if mode == 'RGB':
+            stat = ImageStat.Stat(image)
+            avg_color = [int(c) for c in stat.mean]
+            dominant_feature = ""
 
-def search_wikipedia(query):
-    # Función de utilidad para generar la respuesta de éxito
-    def create_success_result(title, summary, url, source):
+            # Lógica simple para detectar colores dominantes
+            if avg_color[0] > 180 and avg_color[1] < 100 and avg_color[2] < 100:
+                dominant_feature = "Rojo (posible atardecer, fuego o tierra)."
+            elif avg_color[1] > 180 and avg_color[0] < 100 and avg_color[2] < 100:
+                dominant_feature = "Verde (posible vegetación, bosque)."
+            elif avg_color[2] > 180 and avg_color[0] < 100 and avg_color[1] < 100:
+                dominant_feature = "Azul (posible cielo, agua o escena oscura)."
+            else:
+                dominant_feature = "Color dominante mixto o neutro."
+        else:
+            dominant_feature = "Imagen en escala de grises o formato no RGB."
+
+
+        analysis_result = {
+            "title": "Análisis Simple de Imagen (PACURE IA)",
+            "text": f"He procesado la imagen de {width}x{height} píxeles. "
+                    f"El color promedio de la imagen es RGB({avg_color[0]}, {avg_color[1]}, {avg_color[2]}). "
+                    f"**Interpretación:** Detecto un fuerte componente {dominant_feature} "
+                    f"Tu consulta: '{query}' fue procesada, pero el análisis se basó en el color y tamaño. "
+                    f"Para una comprensión real, necesitaría un modelo de IA más avanzado.",
+            "url": "#", # No hay fuente web para el análisis
+            "source": "PACURE Vision"
+        }
+        return analysis_result
+
+    except Exception as e:
+        print(f"Error al analizar la imagen: {e}")
         return {
-            'success': True,
-            'source': source,
-            'title': title,
-            'text': summary,
-            'url': url
+            "title": "Error de Procesamiento de Imagen",
+            "text": "Lo siento, hubo un error al decodificar o procesar la imagen.",
+            "url": "#",
+            "source": "Error"
         }
 
-    try:
-        wikipedia.set_lang('es')
-        
-        # Intento 1: Búsqueda exacta
-        summary = wikipedia.summary(query, sentences=5)
-        page = wikipedia.page(query)
-        return create_success_result(page.title, summary, page.url, 'Wikipedia')
-
-    # Intento 2: Manejo de Múltiples Opciones (Desambiguación)
-    except DisambiguationError as e:
-        try:
-            first_option = e.options[0]
-            summary = wikipedia.summary(first_option, sentences=5)
-            page = wikipedia.page(first_option)
-            return create_success_result(page.title, summary, page.url, f'Wikipedia (opción: {first_option})')
-        except:
-            return {'success': False}
-
-    # Intento 3: Manejo de Página No Encontrada (Búsqueda Inteligente)
-    except PageError:
-        try:
-            suggestions = wikipedia.search(query, results=3)
-            if suggestions:
-                first_suggestion = suggestions[0]
-                summary = wikipedia.summary(first_suggestion, sentences=5)
-                page = wikipedia.page(first_suggestion)
-                return create_success_result(page.title, summary, page.url, f'Wikipedia (sugerencia: {first_suggestion})')
-            else:
-                return {'success': False}
-        except:
-            return {'success': False}
-            
-    # Manejo de Otros Errores (Conexión, etc.)
-    except Exception:
-        return {'success': False}
-
-# ⚠️ FUNCIÓN DE SCRAPING ELIMINADA para mejorar la velocidad.
+# --- RUTAS DE FLASK ---
 
 @app.route('/')
 def index():
@@ -90,26 +71,52 @@ def index():
 
 @app.route('/buscar', methods=['POST'])
 def buscar():
-    data = request.get_json()
-    query = data.get('query', '').strip()
+    data = request.json
+    query = data.get('query', '')
+    image_base64 = data.get('image', None)
     
-    if not query:
-        return jsonify({'success': False, 'error': 'Por favor, ingresa una consulta de búsqueda'}), 400
-    
-    time_info = get_time_info()
-    
-    wiki_result = search_wikipedia(query)
-    
-    if wiki_result['success']:
-        result = wiki_result
+    # 1. SI HAY IMAGEN, HACER ANÁLISIS
+    if image_base64:
+        result = analyze_image_pillow(image_base64, query)
+        
+        # Dado que no estamos haciendo una búsqueda real, simulamos fuentes
+        # para que la interfaz se vea bien (usamos el mismo código JS)
+        if result['source'] == 'PACURE Vision':
+             sources = [{ 'name': result['source'], 'url': '#' }]
+        else:
+             sources = []
+             
+        return jsonify({
+            "title": result['title'],
+            "text": result['text'],
+            "url": result['url'],
+            "source": result['source'],
+            "external_sources": sources 
+        })
+        
+    # 2. SI NO HAY IMAGEN, HACER BÚSQUEDA NORMAL (Simulación)
     else:
-        # 💡 NUEVO FLUJO: Si falla la búsqueda inteligente, retornamos el error inmediatamente (¡es mucho más rápido!)
-        return jsonify({'success': False, 'error': 'No se encontró información relevante en Wikipedia. Intenta con una consulta diferente.'}), 404
-    
-    if time_info:
-        result['time_info'] = time_info
-    
-    return jsonify(result), 200
+        # Simulación de respuesta de búsqueda (como tu script.js anterior)
+        # En un sistema real, aquí llamarías a una API o a tu lógica de búsqueda
+        if "pacure ia" in query.lower() or "que hace" in query.lower():
+            # El script.js maneja las respuestas personalizadas en el cliente
+            return jsonify({"error": "Respuesta personalizada manejada en el cliente.", "code": 400}) 
+
+        # Respuesta simulada de Wikipedia para demostrar la barra de fuentes
+        simulated_response = {
+            "title": "Río Pacuare y Rafting",
+            "text": "El Río Pacuare, ubicado en Costa Rica, es famoso mundialmente por sus emocionantes rápidos de clase III y IV, que lo hacen ideal para el rafting. Es un río prístino que atraviesa una densa selva tropical.",
+            "url": "https://es.wikipedia.org/wiki/R%C3%ADo_Pacuare",
+            "source": "Wikipedia",
+            "external_sources": [
+                { "name": "Wikipedia (Río Pacuare)", "url": "https://es.wikipedia.org/wiki/R%C3%ADo_Pacuare" },
+                { "name": "National Geographic - Aventuras", "url": "https://www.nationalgeographic.com/aventura-pacuare" },
+                { "name": "Pacuare Lodge Oficial", "url": "https://www.pacuarelodge.com/" }
+            ]
+        }
+        return jsonify(simulated_response)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    # Usar un puerto dinámico en un entorno de producción (como Heroku)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(debug=True, host='0.0.0.0', port=port)
