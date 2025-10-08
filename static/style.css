@@ -1,72 +1,99 @@
-/* --- ESTILOS PARA SUBIDA DE IMAGEN (NUEVO) --- */
+/* --- ESTILOS ADICIONALES PARA HERRAMIENTAS (AGREGAR AL FINAL) --- */
 
-.search-section {
-    /* Ajustamos el padding para dar espacio al preview */
-    padding: 10px 30px; 
-}
-
-.image-preview-container {
-    background-color: var(--surface-color);
-    border-radius: 15px;
-    padding: 10px;
-    margin: 0 auto 10px auto;
-    max-width: 800px;
-    position: relative;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-#imagePreview {
-    max-width: 100%;
-    max-height: 120px; /* Tamaño máximo para la vista previa */
-    border-radius: 10px;
-    object-fit: contain;
-}
-
-.remove-btn {
-    position: absolute;
-    top: -5px;
-    right: -5px;
-    background-color: rgba(0, 0, 0, 0.7);
-    color: white;
-    border: 2px solid var(--surface-color);
-    border-radius: 50%;
-    width: 25px;
-    height: 25px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    padding: 0;
-    transition: background-color 0.2s;
-}
-
-.remove-btn:hover {
-    background-color: var(--error-color);
-}
-
-/* Botón de subida dentro del search-group */
-.upload-btn {
+/* Botón de Herramientas */
+.tools-btn {
     background: transparent;
     border: none;
-    color: #9aa0a6; /* Color más discreto */
+    color: var(--text-color);
     cursor: pointer;
-    padding: 0 10px;
+    padding: 0 10px 0 0; 
     transition: color 0.2s;
 }
 
-.upload-btn:hover {
+.tools-btn:hover {
     color: var(--accent-color);
 }
 
-/* Estilo para mostrar la imagen subida en la burbuja del usuario */
-.user-uploaded-image { 
-    max-width: 100%; 
-    max-height: 200px; 
-    border-radius: 8px; 
-    margin-bottom: 10px; 
+/* Menú Flotante de Herramientas */
+.tools-menu {
+    position: absolute;
+    bottom: 80px; /* Ajuste para que esté sobre la barra de búsqueda */
+    left: 40px;
+    background-color: var(--surface-color);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    padding: 10px 0;
+    z-index: 100;
+    min-width: 200px;
 }
-.user-image-container { 
-    margin-bottom: 10px; 
+
+.tool-option {
+    display: flex;
+    align-items: center;
+    padding: 10px 20px;
+    color: var(--text-color);
+    cursor: pointer;
+    transition: background-color 0.15s;
+    font-size: 0.95em;
+}
+
+.tool-option:hover {
+    background-color: var(--hover-color);
+}
+
+.tool-option svg {
+    margin-right: 10px;
+    color: var(--accent-color);
+}
+
+/* Estilo para el apunte creado */
+.created-document {
+    background-color: #383838; /* Un color de fondo diferente para el apunte */
+    border-radius: 10px;
+    padding: 15px;
+    margin-top: 10px;
+    border-left: 5px solid var(--accent-color);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    position: relative;
+    max-width: 90%;
+}
+
+.document-title {
+    font-size: 1.2em;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 8px;
+}
+
+.document-content {
+    font-size: 0.9em;
+    white-space: pre-wrap; /* Mantiene el formato y los saltos de línea */
+    color: #ccc;
+    margin-bottom: 15px;
+}
+
+.document-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.document-actions button {
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.document-actions button:hover {
+    background-color: #5558ff; /* Tono más oscuro de accent-color */
+}
+
+/* Estilos de la barra de búsqueda para que se alinee con el botón de herramientas */
+.search-group {
+    display: flex;
+    align-items: center;
+    padding: 5px 10px; /* Ajuste si es necesario */
 }
