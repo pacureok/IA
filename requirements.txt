@@ -6,3 +6,4 @@ wikipedia
 gunicorn
 Pillow 
 midiutil
+pydub
