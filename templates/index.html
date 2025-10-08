@@ -4,25 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PACURE IA - Asistente de Chat</title>
-    
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"> 
-    
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-    
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='imang/imagres.ico') }}"> 
 </head>
 <body>
 
     <button class="menu-toggle" id="menuToggle">
-        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="24" height="24">
-            <path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="24" height="24"><path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
     
     <div class="sidebar" id="sidebar">
         <div id="historyList" class="history-list-container">
             </div>
-        
         <div class="sidebar-footer">
             <button class="settings-btn">
                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="20" height="20"><path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM13 19.93V17H11V19.93C7.05 19.44 4 16.08 4 12C4 7.92 7.05 4.56 11 4.07V7H13V4.07C16.95 4.56 20 7.92 20 12C20 16.08 16.95 19.44 13 19.93Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -32,13 +26,8 @@
 
     <div class="main-content-wrapper" id="mainContentWrapper">
         <div class="container">
-            
             <div class="chat-window" id="chatWindow">
                 <h1 class="main-title">Hola usuario</h1>
-            </div>
-            
-            <div class="quick-access-buttons">
-                 <button id="quickQueryBtn" class="quick-query-btn hidden">¿Qué hora es?</button>
             </div>
         </div>
     </div>
@@ -53,8 +42,8 @@
             Crear Tabla/Excel
         </div>
     </div>
-
-    <div class="search-section">
+    
+    <div class="search-section" id="searchSection">
         
         <p class="search-prompt">Pregúntale a PACUR IA</p>
         
@@ -81,15 +70,13 @@
             <button id="uploadImageBtn" class="upload-btn">
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="24" height="24"><path d="M19 15V18C19 19.1046 18.1046 20 17 20H7C5.89543 20 5 19.1046 5 18V15M17 5L12 10M12 10L7 5M12 10V2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
-
-            <button id="stopSpeakerBtn" class="hidden" onclick="stopSpeaking(true)">
-                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="6" y="6" width="12" height="12" rx="2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </button>
             
             <button id="searchBtn">
                 <svg class="search-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 19C15.4183 19 19 15.4183 19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19ZM11 17C14.3137 17 17 14.3137 17 11C17 7.68629 14.3137 5 11 5C7.68629 5 5 7.68629 5 11C5 14.3137 7.68629 17 11 17ZM21 21L16 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
         </div>
+        
+        <button id="quickQueryBtn" class="quick-query-btn">¿Qué hora es?</button>
     </div>
     
     <script src="{{ url_for('static', filename='script.js') }}"></script>
