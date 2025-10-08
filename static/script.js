@@ -1,7 +1,12 @@
-// --- VARIABLES GLOBALES Y CACHÉ --- 
+// --- VARIABLES GLOBALES Y CACHÉ ---
 let speaking = false;
 let currentChatId = null; 
-let history = {}; // { chat_id: {title: '...', messages: [{sender: 'user/ia', content: '...', stopped: false, sources: []}]}, ... }
+let history = {}; 
+let uploadedImageBase64 = null; // CLAVE: Base64 de la imagen subida
+
+// Inicializa el historial al cargar la página
+document.addEventListener('DOMContentLoaded', loadHistory);
+
 
 // --- ICONOS SVG (Necesarios para la barra de acciones y fuentes) ---
 const SVG_ICONS = {
@@ -28,11 +33,11 @@ function toggleSidebar() {
     wrapper.classList.toggle('sidebar-open', isOpen);
     menuToggle.classList.toggle('sidebar-open', isOpen);
 
-    // Cambiar el ícono del botón
     menuToggle.innerHTML = isOpen ? 
-        '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' : // Ícono X
-        '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'; // Ícono Hamburguesa
+        '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' : 
+        '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'; 
 }
+
 
 // --- LÓGICA DE HISTORIAL Y CACHÉ ---
 
@@ -58,7 +63,6 @@ function saveHistory() {
 
 function renderHistoryList() {
     const historyList = document.getElementById('historyList');
-    // Botón de Nuevo Chat con ícono
     historyList.innerHTML = `<div class="history-item new-chat-btn" onclick="startNewChat()">
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="20" height="20">
             <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -148,6 +152,47 @@ function speakText(text) {
     }
 }
 
+// --- FUNCIÓN DE MANEJO DE IMAGENES ---
+
+function handleImageUpload(event) {
+    // Solo manejamos el primer archivo (máx 10 en HTML por si el backend lo permite)
+    const file = event.target.files[0]; 
+    const previewContainer = document.getElementById('imagePreviewContainer');
+    const previewImg = document.getElementById('imagePreview');
+
+    if (file) {
+        if (!file.type.startsWith('image/')) {
+            alert('Por favor, sube un archivo de imagen válido.');
+            return;
+        }
+
+        // Limitar tamaño (opcional)
+        if (file.size > 10 * 1024 * 1024) { 
+             alert('La imagen es demasiado grande (máx 10MB).');
+             return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            // Guarda la imagen en Base64 para enviarla a Flask
+            uploadedImageBase64 = e.target.result; 
+            previewImg.src = uploadedImageBase64;
+            previewContainer.classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+
+    } else {
+        removeImage();
+    }
+}
+
+function removeImage() {
+    uploadedImageBase64 = null;
+    document.getElementById('imageInput').value = ''; // Resetear el input file
+    document.getElementById('imagePreviewContainer').classList.add('hidden');
+    document.getElementById('imagePreview').src = '';
+}
+
 
 // --- FUNCIONES DE ACCIÓN DE LA IA Y FUENTES ---
 
@@ -163,14 +208,12 @@ function createSourceBar(sources) {
     if (!sources || sources.length === 0) return '';
     
     let html = '<div class="sources-container">';
-    
     const visibleSources = sources.slice(0, 1);
     const hiddenSources = sources.slice(1);
 
     visibleSources.forEach(source => {
-        // Mostrar solo el nombre del dominio (ej: wikipedia.org)
-        let sourceName = new URL(source.url).hostname;
-        sourceName = sourceName.replace(/(www\.)?/g, '');
+        // Usa el nombre de la fuente o el host si es una URL válida
+        let sourceName = source.name || (source.url ? new URL(source.url).hostname.replace(/(www\.)?/g, '') : 'Fuente');
         
         html += `
             <a href="${source.url}" target="_blank" class="source-item">
@@ -206,6 +249,9 @@ function createSourceBar(sources) {
     html += '</div>';
     return html;
 }
+
+// ... (reListen, copyResponse, redoSearch, toggleMenu, createActionsBar - SIN CAMBIOS) ...
+
 
 function reListen(chatId, messageIndex) {
     const chat = history[chatId];
@@ -254,7 +300,6 @@ function redoSearch(chatId, messageIndex) {
 
     if (userQuery) {
         document.getElementById('searchInput').value = userQuery;
-        // Elimina el mensaje de la IA actual y la pregunta del usuario
         if (userMessageIndex !== -1) {
              chat.messages.splice(userMessageIndex, 2); 
         } else {
@@ -263,7 +308,7 @@ function redoSearch(chatId, messageIndex) {
        
         saveHistory();
         renderChatWindow(chat.messages);
-        buscar(); // Vuelve a ejecutar la búsqueda
+        buscar(); 
     } else {
         alert('No se encontró una consulta anterior para rehacer.');
     }
@@ -348,15 +393,19 @@ function renderChatWindow(messages) {
             bubble.className = `message-bubble bubble-${msg.sender}`;
             
             let finalContent = msg.content;
+            
+            // Mostrar imagen si es un mensaje de usuario con imagen
+            if (msg.sender === 'user' && msg.image) {
+                // La imagen ya está guardada como Base64 en el historial
+                finalContent = `<div class="user-image-container"><img src="${msg.image}" alt="Imagen subida" class="user-uploaded-image"></div>` + finalContent;
+            }
 
             if (msg.sender === 'ia') {
-                // 1. Inyección de las fuentes (ANTES del contenido principal)
                 if (msg.sources && msg.sources.length > 0) {
                     const sourceBar = createSourceBar(msg.sources);
                     finalContent = sourceBar + finalContent;
                 }
                 
-                // 2. Inyección de la barra de acciones
                 const actionsBar = createActionsBar(currentChatId, index);
                 finalContent += actionsBar;
             }
@@ -376,146 +425,104 @@ function renderChatWindow(messages) {
 async function buscar() {
     const searchInput = document.getElementById('searchInput');
     const query = searchInput.value.trim();
+    const image = uploadedImageBase64; 
     const normalizedQuery = query.toLowerCase();
 
-    if (!query) return;
+    if (!query && !image) {
+        alert("Por favor, escribe una consulta o sube una imagen.");
+        return;
+    }
 
-    // 1. Añadir el mensaje del USUARIO
-    const userMessage = { sender: 'user', content: query };
+    // 1. Añadir el mensaje del USUARIO al historial
+    const userMessage = { 
+        sender: 'user', 
+        content: query || "Consulta de imagen sin texto", 
+        image: image // Guardamos la Base64 para el historial
+    };
     history[currentChatId].messages.push(userMessage);
     renderChatWindow(history[currentChatId].messages);
     
     let iaContent = '';
-    let isCustomResponse = false;
     let textToRead = '';
-    let sources = []; // Inicializar fuentes para la respuesta
+    let sources = []; 
+    let isCustomResponse = false; // Flag para respuestas que no van al servidor
 
-    // 2. Lógica de Respuestas Programadas (PACURE IA)
+    // Reiniciamos la barra de entrada y la vista previa inmediatamente
+    removeImage();
+    searchInput.value = '';
+
+    // 2. Lógica de Respuestas PERSONALIZADAS (sin servidor)
     
-    if (normalizedQuery.includes('que hace') || normalizedQuery.includes('pacure ia') ||
-        normalizedQuery.includes('genera imagen') || normalizedQuery.includes('haz una imagen')) 
+    if (!image && (normalizedQuery.includes('que hace') || normalizedQuery.includes('pacure ia') ||
+        normalizedQuery.includes('genera imagen') || normalizedQuery.includes('haz una imagen'))) 
     {
         isCustomResponse = true;
-        iaContent = `
-            <h3 class="result-title">PACURE IA: ¿Qué Hago?</h3>
-            <p class="result-text">
-                Soy PACURE IA, la herramienta de asistencia y búsqueda diseñada para brindarte información rápida y precisa. Mis capacidades principales incluyen:
-                <ul>
-                    <li>**Resumen de Búsqueda:** Combino datos de múltiples fuentes para darte una respuesta concisa.</li>
-                    <li>**Generación de Texto y Código:** Puedo generar textos creativos, resúmenes o ejemplos de código.</li>
-                    <li>**¡IMPORTANTE! Generación de Imágenes:** **No puedo generar o hacer imágenes** en este momento. Soy un asistente de texto avanzado.</li>
-                    <li>**Asistencia por Voz (TTS):** Puedo leer mis respuestas para ti si lo deseas.</li>
-                    <li>**Gestión de Historial:** Guardo nuestras conversaciones para que puedas consultarlas más tarde.</li>
-                </ul>
-            </p>
-            <p class="result-text">
-                Mi función principal es ayudarte a encontrar información de manera eficiente.
-            </p>
-        `;
-        textToRead = "Mi función principal es ayudarte a encontrar información de manera eficiente. No puedo generar imágenes, pero sí puedo generar texto, resúmenes y leer mis respuestas.";
+        iaContent = `<h3 class="result-title">PACURE IA: ¿Qué Hago?</h3><p class="result-text">Soy PACURE IA... (etc.). **Ahora también puedo analizar imágenes que subas, enviándolas a mi servidor Python.**</p>`;
+        textToRead = "Soy PACURE IA... y puedo analizar imágenes.";
     } 
     
-    else if (normalizedQuery.includes('dueño') || normalizedQuery.includes('creador')) 
+    else if (!image && (normalizedQuery.includes('dueño') || normalizedQuery.includes('creador'))) 
     {
         isCustomResponse = true;
-        iaContent = `
-            <h3 class="result-title">Dueño de PACURE IA</h3>
-            <p class="result-text">
-                Soy propiedad y desarrollo de **PACURE IA DUEÑO**. Mi propósito es ser una herramienta de apoyo y un asistente virtual para todos mis usuarios.
-            </p>
-        `;
-        textToRead = "Soy propiedad y desarrollo de PACURE IA DUEÑO. Mi propósito es ser un asistente virtual para ti.";
+        iaContent = `<h3 class="result-title">Dueño de PACURE IA</h3><p class="result-text">Soy propiedad y desarrollo de **PACURE IA DUEÑO**.</p>`;
+        textToRead = "Soy propiedad y desarrollo de PACURE IA DUEÑO.";
     }
     
-    else if (normalizedQuery.includes('home') || normalizedQuery.includes('inicio') || normalizedQuery.includes('principal')) 
+    else if (!image && (normalizedQuery.includes('home') || normalizedQuery.includes('inicio') || normalizedQuery.includes('principal'))) 
     {
         isCustomResponse = true;
-        iaContent = `
-            <h3 class="result-title">Página Principal de PACURE IA (Home)</h3>
-            <p class="result-text">
-                Bienvenido de vuelta. Esta es una simulación del contenido de mi página de inicio, copiado del enlace:
-                <ul>
-                    <li>**¡Bienvenido a PACURE IA!** Tu compañero de IA más eficiente.</li>
-                    <li>**Rápido y Preciso:** Obtén respuestas en segundos.</li>
-                    <li>**Últimas Novedades:** Pronto implementaremos una función de generación de imágenes y mejoras en el historial.</li>
-                    <li>**Soporte:** Para más ayuda, visita nuestro sitio oficial o contacta al dueño.</li>
-                </ul>
-            </p>
-        `;
-        textToRead = "Bienvenido a mi página de inicio. Soy tu compañero de IA más eficiente. Obtén respuestas rápidas y precisas. ¡Sigue preguntando!";
+        iaContent = `<h3 class="result-title">Página Principal de PACURE IA (Home)</h3><p class="result-text">Bienvenido de vuelta. Esta es una simulación del contenido de mi página de inicio.</p>`;
+        textToRead = "Bienvenido a mi página de inicio.";
     }
-    
-    
-    // 3. Ejecución de la Respuesta (Personalizada o Externa)
-    
-    if (isCustomResponse) {
-        
-        if (history[currentChatId].messages.length === 1) { 
-            history[currentChatId].title = generateTitle(query);
-        }
 
-        // Se usa sources: [] por defecto
-        const iaMessage = { sender: 'ia', content: iaContent, stopped: false, sources: [] }; 
-        history[currentChatId].messages.push(iaMessage);
-        
-        speakText(textToRead);
-        
-    } else {
-        // Respuesta normal (Búsqueda externa - Aquí simulas la respuesta de tu servidor)
-        
+    // 3. Ejecución al Servidor (Búsqueda o Análisis de Imagen)
+    if (!isCustomResponse) {
         try {
-            // SIMULACIÓN de la respuesta del servidor (reemplaza esto con tu fetch real)
-            const data = {
-                title: 'Río Pacuare y Rafting',
-                text: 'El Río Pacuare, ubicado en Costa Rica, es famoso mundialmente por sus emocionantes rápidos de clase III y IV, que lo hacen ideal para el rafting. Es un río prístino que atraviesa una densa selva tropical.',
-                url: 'https://es.wikipedia.org/wiki/R%C3%ADo_Pacuare',
-                // Simulamos múltiples fuentes para demostrar el 'más'
-                external_sources: [
-                    { name: 'Wikipedia (Río Pacuare)', url: 'https://es.wikipedia.org/wiki/R%C3%ADo_Pacuare' },
-                    { name: 'National Geographic - Aventuras', url: 'https://www.nationalgeographic.com/aventura-pacuare' },
-                    { name: 'Pacuare Lodge Oficial', url: 'https://www.pacuarelodge.com/' }
-                ]
-            };
+            const response = await fetch('/buscar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: query, image: image }) // Enviamos la imagen
+            });
             
-            // Asignar fuentes y construir el contenido
-            sources = data.external_sources || [];
-
-            iaContent = `
-                <div class="result-header">
-                    <h3 class="result-title">${data.title}</h3>
-                </div>
-                <p class="result-text">${data.text}</p>
-                <a href="${data.url}" target="_blank" class="result-link">Ver fuente completa →</a>
-            `;
+            const data = await response.json();
             
-            textToRead = `${data.title}. El resumen es: ${data.text}`;
-            speakText(textToRead);
-            
-            if (history[currentChatId].messages.length === 1) { 
-                history[currentChatId].title = generateTitle(query);
+            if (response.ok && data.text) {
+                // Estructura el resultado
+                sources = data.external_sources || [];
+                iaContent = `
+                    <div class="result-header">
+                        <h3 class="result-title">${data.title}</h3>
+                    </div>
+                    <p class="result-text">${data.text}</p>
+                    ${data.url !== '#' ? `<a href="${data.url}" target="_blank" class="result-link">Ver fuente completa →</a>` : ''}
+                `;
+                
+                textToRead = `${data.title}. El resumen es: ${data.text}`;
+            } else {
+                // Manejar error de servidor o respuesta personalizada si Flask la devuelve
+                iaContent = `<p class="error-text">❌ ${data.error || 'Error desconocido al buscar o error de servidor.'}</p>`;
+                textToRead = "Hubo un error al buscar la información.";
             }
-
-            const iaMessage = { 
-                sender: 'ia', 
-                content: iaContent, 
-                stopped: false, 
-                sources: sources // Asigna las fuentes aquí
-            };
-            history[currentChatId].messages.push(iaMessage);
             
         } catch (err) {
             iaContent = '<p class="error-text">⚠️ Error de conexión con el servidor.</p>';
-            const errorMsg = { sender: 'ia', content: iaContent, sources: [] };
-            history[currentChatId].messages.push(errorMsg);
             textToRead = "Error de conexión con el servidor.";
         }
     }
-
-    // 4. Actualizar
+    
+    // 4. Generar y mostrar la respuesta de la IA
+    const iaMessage = { 
+        sender: 'ia', 
+        content: iaContent, 
+        stopped: false, 
+        sources: sources 
+    };
+    history[currentChatId].messages.push(iaMessage);
+    
+    speakText(textToRead);
     renderChatWindow(history[currentChatId].messages);
     renderHistoryList(); 
     saveHistory(); 
-    searchInput.value = ''; // Limpiar la barra de búsqueda
 }
 
 
@@ -523,13 +530,9 @@ async function buscar() {
 
 document.addEventListener('DOMContentLoaded', () => {
     loadHistory();
-    // Listener para el botón de abrir/cerrar menú
     document.getElementById('menuToggle').addEventListener('click', toggleSidebar);
-
-    // Listener para el botón de búsqueda
     document.getElementById('searchBtn').addEventListener('click', buscar);
     
-    // Listener para la tecla Enter en el input
     document.getElementById('searchInput').addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
             e.preventDefault();
@@ -537,7 +540,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Listener para detener el TTS (ya añadido en el HTML, pero aseguramos la función)
+    // LISTENERS PARA IMAGEN
+    const imageInput = document.getElementById('imageInput');
+    const uploadBtn = document.getElementById('uploadImageBtn');
+    const removeBtn = document.getElementById('removeImageBtn');
+
+    uploadBtn.addEventListener('click', () => {
+        imageInput.click();
+    });
+
+    imageInput.addEventListener('change', handleImageUpload);
+    removeBtn.addEventListener('click', removeImage);
+
+    // Listener para detener TTS
     const stopBtn = document.getElementById('stopSpeakerBtn');
     if (stopBtn) stopBtn.addEventListener('click', () => stopSpeaking(true));
 });
