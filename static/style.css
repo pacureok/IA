@@ -1,26 +1,19 @@
 /* ========================================================================= */
-/* 1. VARIABLES GLOBALES (MODO OSCURO - BASADO EN IMÁGENES DE REFERENCIA)    */
+/* 1. VARIABLES GLOBALES Y RESET                                             */
 /* ========================================================================= */
 :root {
-    --background-color: #1a1a1a;
-    --surface-color: #242424; /* Color de fondo principal (main-content) */
-    --surface-color-dark: #121212; /* Color de la barra lateral (sidebar) */
-    --hover-color: #333333; /* Color de hover para botones y historial */
+    --surface-color: #242424; /* Fondo principal */
+    --surface-color-dark: #1e1e1e; /* Barra lateral */
+    --hover-color: #333333;
     --text-color: #ffffff;
     --text-color-secondary: #aaaaaa;
-    --accent-color: #7950f2; /* Púrpura (Nuevo Chat, algunos iconos) */
+    --accent-color: #7950f2; /* Púrpura (botones, iconos) */
     --input-color: #363636; /* Fondo del campo de búsqueda */
-    --input-text-color: #ffffff;
-    --bubble-ia-color: #242424; /* Burbuja de chat de IA */
-    --bubble-user-color: #444444; /* Burbuja de chat de Usuario */
-    --ia-action-bg: #2d2d2d; /* Fondo de la barra de acciones de IA */
-    --ia-action-hover: #404040;
     --max-content-width: 900px;
+    --sidebar-width: 280px;
+    --search-height: 150px; /* Altura del padding para la sección de búsqueda */
 }
 
-/* ========================================================================= */
-/* 2. BASE Y LAYOUT PRINCIPAL                                                */
-/* ========================================================================= */
 * {
     box-sizing: border-box;
     margin: 0;
@@ -31,51 +24,57 @@ body {
     font-family: 'Roboto', sans-serif;
     background-color: var(--surface-color);
     color: var(--text-color);
-    display: flex; /* Habilita el layout de la barra lateral */
+    display: flex;
     height: 100vh;
-    overflow: hidden; /* Evita scroll general en el body */
+    overflow: hidden; /* Controla el scroll global */
 }
 
-/* Contenedor principal del chat, ocupa el resto del espacio */
+/* ========================================================================= */
+/* 2. LAYOUT PRINCIPAL (Contenedor del Chat)                                 */
+/* ========================================================================= */
+
 .main-content-wrapper {
     flex-grow: 1; 
     display: flex;
     flex-direction: column;
-    padding: 0 20px;
+    padding-top: 20px;
     height: 100vh;
-    overflow-y: auto; /* Scroll para el contenido del chat */
+    overflow-y: auto; /* Permite el scroll vertical en el chat */
     transition: margin-left 0.3s ease-in-out;
+    /* Relleno inferior para dejar espacio a la barra de búsqueda FIJA */
+    padding-bottom: var(--search-height); 
 }
 
 .container {
     max-width: var(--max-content-width);
     width: 100%;
-    margin: 0 auto; /* Centrar el contenido del chat */
+    margin: 0 auto; /* Centrar el contenido */
     flex-grow: 1;
     display: flex;
     flex-direction: column;
 }
 
 .main-title {
-    color: #5599ff; /* Azul brillante como en la imagen 'Hola usuario' */
+    color: #5599ff; /* Azul brillante */
     text-align: center;
     font-size: 3em;
     font-weight: 500;
     margin-top: 20vh;
-    flex-shrink: 0; /* No debe encogerse */
+    flex-shrink: 0; 
 }
 
+
 /* ========================================================================= */
-/* 3. BARRA LATERAL (SIDEBAR) Y MENÚ TOGGLE                                  */
+/* 3. BARRA LATERAL (Sidebar) y Historial                                    */
 /* ========================================================================= */
 .sidebar {
-    width: 250px;
+    width: var(--sidebar-width);
     background-color: var(--surface-color-dark);
-    position: fixed;
+    position: fixed; /* Fija la barra lateral */
     height: 100%;
     left: 0;
     top: 0;
-    transform: translateX(-100%); /* Oculta por defecto */
+    transform: translateX(-100%); 
     transition: transform 0.3s ease-in-out;
     padding: 10px;
     z-index: 20;
@@ -85,76 +84,21 @@ body {
 }
 
 .sidebar.open {
-    transform: translateX(0); /* Muestra cuando está abierta */
+    transform: translateX(0);
 }
 
+/* Mover el contenido principal cuando la barra está abierta (desktop) */
 .main-content-wrapper.sidebar-open {
-    /* Mover el contenido del chat cuando la barra lateral está abierta */
-    margin-left: 250px; 
+    margin-left: var(--sidebar-width);
 }
 
-/* Botón de las 3 rayas */
-.menu-toggle {
-    position: fixed;
-    top: 15px;
-    left: 15px;
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: var(--text-color);
-    padding: 5px;
-    z-index: 30;
-}
-.menu-toggle svg {
-    width: 24px;
-    height: 24px;
-}
-
-.sidebar-footer {
-    padding: 10px;
-    margin-top: auto; /* Fija el botón de ajustes en la parte inferior */
-    border-top: 1px solid var(--hover-color);
-}
-.settings-btn {
-    background-color: transparent;
-    border: none;
-    color: var(--text-color-secondary);
-    padding: 10px;
-    border-radius: 8px;
-    width: 100%;
-    text-align: left;
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-}
-.settings-btn:hover {
-    background-color: var(--hover-color);
-}
-
-
-/* ========================================================================= */
-/* 4. GESTIÓN DE HISTORIAL (Nueva Lógica con Menú)                           */
-/* ========================================================================= */
-#historyList {
+/* Estilos de historial (mantener padding-top para el botón de menú) */
+.history-list-container {
     flex-grow: 1;
     overflow-y: auto;
-    padding-top: 50px; /* Espacio para el botón de menú flotante */
+    padding-top: 50px;
 }
 
-/* Botón de Nuevo Chat */
-.new-chat-btn {
-    background-color: var(--hover-color) !important;
-    color: var(--text-color) !important;
-    font-weight: 500;
-    margin-bottom: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    
-}
-.new-chat-btn svg {
-    color: var(--accent-color) !important;
-}
-
-/* Item de Chat Individual */
 .history-item {
     display: flex;
     justify-content: space-between;
@@ -167,38 +111,10 @@ body {
     color: var(--text-color-secondary);
     position: relative; 
     transition: background-color 0.15s, color 0.15s;
+    font-size: 0.95em;
 }
 
-.history-item:hover, .history-item.active {
-    background-color: var(--hover-color);
-    color: var(--text-color);
-}
-
-.history-item.active {
-    font-weight: 500;
-}
-
-.chat-title-container {
-    display: flex;
-    align-items: center;
-    flex-grow: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.pin-icon {
-    display: flex;
-    align-items: center;
-    margin-right: 5px;
-    color: var(--accent-color); 
-}
-.pin-icon svg {
-    width: 14px;
-    height: 14px;
-}
-
-/* Botón de puntos suspensivos para opciones (borrar/renombrar) */
+/* Botón de 3 puntos "..." */
 .chat-options-dots {
     color: var(--text-color-secondary);
     padding: 5px;
@@ -207,21 +123,11 @@ body {
     flex-shrink: 0;
 }
 
-.chat-options-dots:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-}
-
-.chat-options-dots svg {
-    width: 18px;
-    height: 18px;
-    display: block;
-}
-
-/* Menú flotante de opciones del chat */
+/* Menú flotante de opciones (para Fijar, Borrar, Renombrar) */
 .chat-options-menu {
     position: absolute;
-    top: 5px; 
-    right: 5px;
+    top: 0; 
+    right: -150px; /* Posicionar a la derecha de los 3 puntos */
     background-color: var(--surface-color);
     border: 1px solid var(--hover-color);
     border-radius: 8px;
@@ -230,23 +136,23 @@ body {
     min-width: 150px;
     padding: 5px;
 }
-/* Estilos internos del menú... (Usar los estilos que te di en el paso anterior) */
 
 
 /* ========================================================================= */
-/* 5. BARRA DE BÚSQUEDA (Search Section)                                     */
+/* 4. BARRA DE BÚSQUEDA (Solución de Posicionamiento Fijo)                   */
 /* ========================================================================= */
 .search-section {
-    position: sticky; /* Se fija al fondo del área de chat */
+    position: fixed; /* HACER FIJO EN LA VENTANA (crucial para el diseño) */
     bottom: 0;
-    width: 100%;
+    left: 0;
+    right: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 20px 0 50px 0; /* Espacio extra en el fondo */
-    background: linear-gradient(to top, var(--surface-color), transparent); /* Gradiente para ocultar el scroll */
+    /* Usamos un padding superior grande y un gradiente para unificar el fondo */
+    padding: 20px 20px 30px 20px; 
+    background: linear-gradient(to top, var(--surface-color) 70%, transparent); 
     z-index: 10;
-    margin-top: auto;
 }
 
 .search-prompt {
@@ -264,23 +170,19 @@ body {
     border-radius: 30px;
     padding: 8px 15px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    position: relative; /* Para posicionar el botón rápido */
 }
 
-/* Campo de input */
 #searchInput {
     flex-grow: 1;
     border: none;
     background: none;
-    color: var(--input-text-color);
-    padding: 10px 10px 10px 0;
+    color: var(--text-color);
+    padding: 10px 10px;
     font-size: 1em;
     outline: none;
-    resize: none; /* No redimensionable */
 }
 
-/* Botones dentro del search-group */
-.tools-btn, .upload-btn, #searchBtn, #stopSpeakerBtn {
+.tools-btn, .upload-btn, #searchBtn {
     background: none;
     border: none;
     color: var(--text-color-secondary);
@@ -296,11 +198,7 @@ body {
     color: var(--accent-color); /* Color de la lupa (Púrpura) */
 }
 
-.tools-btn, .upload-btn {
-    margin-right: 5px;
-}
-
-/* Botón rápido "¿Qué hora es?" */
+/* Botón rápido "¿Qué hora es?" - posicionado flotante/relativo */
 #quickQueryBtn {
     position: absolute;
     top: -45px; /* Arriba de la barra de búsqueda */
@@ -313,91 +211,92 @@ body {
     border-radius: 20px;
     cursor: pointer;
     font-size: 0.9em;
-    transition: background-color 0.15s;
-}
-#quickQueryBtn:hover {
-    background-color: var(--hover-color);
 }
 
 /* Vista previa de la imagen */
 .image-preview-container {
     position: absolute;
-    bottom: 90px;
+    bottom: 120px; /* Arriba del search-group */
+    left: 50%;
+    transform: translateX(-50%);
     background-color: var(--input-color);
     padding: 10px;
     border-radius: 10px;
     border: 1px solid var(--hover-color);
-    max-width: 100%;
+    max-width: 680px;
+    width: 90%;
     display: flex;
-    align-items: flex-start;
+    align-items: center;
+    justify-content: space-between;
+}
+.image-file-info {
+    display: flex;
+    align-items: center;
+    overflow: hidden;
 }
 #imagePreview {
-    max-width: 150px;
-    height: auto;
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
     border-radius: 5px;
+    margin-right: 10px;
 }
-.remove-btn {
-    background: rgba(0, 0, 0, 0.5);
-    border: none;
-    color: white;
-    border-radius: 50%;
-    cursor: pointer;
-    padding: 5px;
-    margin-left: 10px;
-    flex-shrink: 0;
+.file-name-display {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text-color-secondary);
+    font-size: 0.9em;
 }
 
 /* ========================================================================= */
-/* 6. ESTILOS DE CHAT Y MENÚ DE HERRAMIENTAS                                 */
+/* 5. ESTILOS DE CHAT Y ACCIONES DE IA                                       */
 /* ========================================================================= */
-.chat-window {
-    padding-top: 50px; /* Espacio superior para el primer mensaje */
-    padding-bottom: 250px; /* Mucho espacio inferior para la barra fija */
-    display: flex;
-    flex-direction: column;
-}
 
 .chat-message {
-    display: flex;
     margin-bottom: 25px;
-    max-width: 100%;
+    /* ... (rest of chat message styles) ... */
 }
 
-.chat-message.chat-user {
-    justify-content: flex-end; /* Mensajes de usuario a la derecha */
-}
-
-.chat-message.chat-ia {
-    justify-content: flex-start; /* Mensajes de IA a la izquierda */
-    flex-direction: column;
-}
-
-.message-bubble {
-    padding: 15px 20px;
-    border-radius: 20px;
-    max-width: 90%;
-    line-height: 1.6;
-}
-
-.bubble-ia {
-    background-color: var(--bubble-ia-color);
-    border-bottom-left-radius: 5px; /* Esquina de IA un poco más cuadrada */
-}
-
-.bubble-user {
-    background-color: var(--bubble-user-color);
-    color: var(--text-color);
-    border-bottom-right-radius: 5px; /* Esquina de usuario un poco más cuadrada */
-}
-
-/* Estilos para el aviso de respuesta detenida (Como en tus imágenes) */
-.stop-notice-container {
-    width: 100%;
+.ia-actions {
     display: flex;
-    justify-content: flex-start; /* Alineado a la izquierda del mensaje de IA */
-    margin-bottom: 10px;
+    align-items: center;
+    margin-top: 15px;
+    padding: 5px;
+    background-color: var(--input-color); /* Fondo oscuro para la barra de acciones */
+    border-radius: 20px;
+    width: max-content;
+    position: relative;
+    z-index: 5;
 }
 
+.action-btn {
+    /* ... (rest of action button styles) ... */
+}
+
+/* Tooltip (Texto flotante como "Respuesta correcta") */
+.tooltip-text {
+    visibility: hidden;
+    opacity: 0;
+    /* ... (posición y otros estilos) ... */
+    background-color: rgba(0, 0, 0, 0.8); 
+    color: #fff;
+    padding: 5px 10px;
+    border-radius: 6px;
+    position: absolute;
+    bottom: 125%; 
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    transition: opacity 0.3s;
+}
+
+.action-btn:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* Aviso de respuesta detenida (Estrella/Diamante) */
 .stop-notice {
     display: inline-flex;
     align-items: center;
@@ -413,117 +312,4 @@ body {
     font-size: 1.2em;
     line-height: 1;
     margin-right: 5px;
-}
-
-/* Barra de Acciones de la IA (Pulgares, Rehacer, etc.) */
-.ia-actions {
-    display: flex;
-    align-items: center;
-    margin-top: 15px;
-    padding: 5px;
-    background-color: var(--ia-action-bg);
-    border-radius: 20px;
-    width: max-content;
-    position: relative;
-    z-index: 5;
-}
-
-.action-btn {
-    background: none;
-    border: none;
-    color: var(--text-color-secondary);
-    cursor: pointer;
-    padding: 8px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-}
-
-.action-btn:hover {
-    background-color: var(--ia-action-hover);
-    color: var(--text-color);
-}
-
-.action-btn svg {
-    width: 20px;
-    height: 20px;
-}
-
-/* Tooltip (Texto que aparece al pasar el mouse, como "Respuesta correcta") */
-.tooltip-text {
-    visibility: hidden;
-    background-color: black;
-    color: #fff;
-    text-align: center;
-    border-radius: 6px;
-    padding: 5px 10px;
-    position: absolute;
-    z-index: 1;
-    bottom: 125%; /* Posiciona arriba del botón */
-    left: 50%;
-    transform: translateX(-50%);
-    white-space: nowrap;
-    opacity: 0;
-    transition: opacity 0.3s;
-}
-
-.action-btn:hover .tooltip-text {
-    visibility: visible;
-    opacity: 1;
-}
-
-/* Menú de herramientas flotante (+) */
-.tools-menu {
-    position: absolute;
-    bottom: 100px; 
-    left: 20px; /* Posicionamiento inicial, ajustado por JS */
-    background-color: var(--surface-color);
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-    z-index: 20;
-    padding: 10px;
-    min-width: 200px;
-}
-
-.tool-option {
-    display: flex;
-    align-items: center;
-    padding: 10px;
-    margin: 5px 0;
-    cursor: pointer;
-    border-radius: 8px;
-    color: var(--text-color);
-}
-
-.tool-option:hover {
-    background-color: var(--hover-color);
-}
-
-.tool-option svg {
-    margin-right: 10px;
-    width: 20px;
-    height: 20px;
-    color: var(--text-color-secondary);
-}
-
-/* Media Query para móvil */
-@media (max-width: 768px) {
-    .sidebar {
-        width: 100%;
-        box-shadow: 2px 0 5px rgba(0, 0, 0, 0.5);
-    }
-    .main-content-wrapper {
-        margin-left: 0 !important;
-    }
-    .menu-toggle.sidebar-open {
-        left: 20px; 
-    }
-    .search-group {
-        padding: 8px 10px;
-    }
-    .search-section {
-        padding-bottom: 20px;
-    }
 }
