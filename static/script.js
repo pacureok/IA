@@ -4,16 +4,20 @@ document.addEventListener('DOMContentLoaded', () => {
     // ============================================================
     const sidebar = document.getElementById('sidebar');
     const menuToggle = document.getElementById('menuToggle');
-    const closeSidebarBtn = document.querySelector('.close-sidebar-btn');
+    const sidebarOptionsBtn = document.getElementById('sidebarOptionsBtn'); // Botón de 3 puntos en la cabecera del sidebar
     const mainContentWrapper = document.getElementById('mainContentWrapper');
     const newChatBtn = document.getElementById('newChatBtn');
     const historyList = document.getElementById('historyList');
     const chatWindow = document.getElementById('chatWindow');
     
-    // Elementos de la barra de búsqueda
-    const toolsOrUploadBtn = document.getElementById('toolsOrUploadBtn');
-    const fileInput = document.getElementById('fileInput');
+    // Menús contextuales
+    const historyOptionsMenu = document.getElementById('historyOptionsMenu');
     const toolsMenu = document.getElementById('toolsMenu');
+    
+    // Elementos de la barra de búsqueda
+    const multiUploadBtn = document.getElementById('multiUploadBtn'); // Botón '+'
+    const multiFileInput = document.getElementById('multiFileInput'); // Input para 10 archivos
+    const toolsBtn = document.getElementById('toolsBtn'); // Botón "Herramientas"
     const searchInput = document.getElementById('searchInput');
     const searchBtn = document.getElementById('searchBtn');
     const previewContainer = document.getElementById('imagePreviewContainer');
@@ -33,32 +37,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 { type: 'user', text: "Dame un plan de marketing para mi canal de YouTube." },
                 { 
                     type: 'ia', 
-                    text: "Un excelente plan para un canal de YouTube debe centrarse en la creación de contenido de alta calidad y la optimización SEO. Los pilares son: 1. Investigación de Palabras Clave. 2. Calendario Editorial Consistente. 3. Promoción Cruzada en redes.", 
-                    imageTopic: "marketing digital" 
+                    text: "Un excelente plan para un canal de YouTube debe centrarse en la creación de contenido de alta calidad y la optimización SEO. Los pilares son: 1. Investigación de Palabras Clave. 2. Calendario Editorial Consistente. 3. Promoción Cruzada en redes. 🚀 ¡A crecer! 😄", 
+                    imageTopic: "marketing digital",
+                    sources: ["youtube.com", "blogmarketing.net", "seo-tools.org"]
                 }
             ]
         },
-        { 
-            id: 2, 
-            title: "Ajuste de estilos CSS", 
-            messages: [
-                { type: 'user', text: "Cómo puedo reducir el tamaño de los emojis en CSS?" },
-                { type: 'ia', text: "Puedes usar selectores CSS específicos o envolver tus emojis en una clase con un tamaño de fuente reducido, como `font-size: 1.2rem;` para evitar que hereden tamaños gigantes." }
-            ]
-        }
+        // ... otros chats iniciales
     ];
 
     // ============================================================
-    // 3. FUNCIONES PRINCIPALES
+    // 3. FUNCIONES DE MANEJO DE VISTAS
     // ============================================================
 
-    // Maneja la apertura y cierre de la barra lateral
+    // Maneja la apertura y cierre de la barra lateral (Botón de 3 puntos arriba)
     function toggleSidebar() {
         sidebar.classList.toggle('open');
         mainContentWrapper.classList.toggle('sidebar-open');
     }
 
-    // Carga los elementos del historial en la barra lateral
+    // Carga los elementos del historial en la barra lateral con los 3 puntos
     function loadHistory() {
         historyList.innerHTML = '';
         chats.forEach(chat => {
@@ -66,25 +64,45 @@ document.addEventListener('DOMContentLoaded', () => {
             item.className = 'history-item';
             item.dataset.chatId = chat.id;
             item.innerHTML = `
-                <span>${chat.title.substring(0, 25)}...</span>
-                <button class="chat-options-dots">...</button>
+                <span>${chat.title.substring(0, 25)}${chat.title.length > 25 ? '...' : ''}</span>
+                <button class="chat-options-dots" aria-label="Opciones de chat"></button>
             `;
-            item.addEventListener('click', () => {
+            
+            // Evento para cargar el chat al hacer clic en el nombre (subpágina)
+            item.querySelector('span').addEventListener('click', () => {
                 loadChat(chat.id);
-                // Cierra la sidebar en móvil después de seleccionar chat
-                if (window.innerWidth <= 768) {
+                if (window.innerWidth <= 1024) { // Cierra la sidebar en móvil/tablet
                     toggleSidebar(); 
                 }
             });
+
+            // Evento para el menú contextual de opciones (3 puntos)
+            item.querySelector('.chat-options-dots').addEventListener('click', (e) => {
+                e.stopPropagation(); // Evita que se dispare el evento de cargar chat
+                showHistoryMenu(e.currentTarget, chat.id);
+            });
+
             historyList.appendChild(item);
         });
         
-        // Carga el último chat por defecto al iniciar
+        // Carga el chat más reciente por defecto
         if (chats.length > 0 && currentChatId === null) {
-            loadChat(chats[0].id);
+            loadChat(chats[chats.length - 1].id);
         }
     }
 
+    // Muestra el menú contextual de opciones de un chat específico
+    function showHistoryMenu(buttonElement, chatId) {
+        historyOptionsMenu.dataset.chatId = chatId;
+        const rect = buttonElement.getBoundingClientRect();
+        
+        // Posicionar el menú debajo y a la izquierda del botón
+        historyOptionsMenu.style.top = `${rect.bottom + 5}px`;
+        historyOptionsMenu.style.left = `${rect.right - historyOptionsMenu.offsetWidth}px`;
+
+        historyOptionsMenu.classList.remove('hidden');
+    }
+    
     // Carga y muestra una conversación específica (simulando subpágina)
     function loadChat(chatId) {
         currentChatId = chatId;
@@ -101,8 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Limpia y carga los mensajes en la ventana de chat
         chatWindow.innerHTML = '';
         
-        // Si es la conversación inicial (nueva), muestra el título de bienvenida
-        if (chat.messages.length === 0) {
+        if (!chat || chat.messages.length === 0) {
             chatWindow.innerHTML = `<h1 class="main-title">Hola, <span class="user-name">YouTuber pacure</span></h1>`;
             return;
         }
@@ -115,20 +132,36 @@ document.addEventListener('DOMContentLoaded', () => {
         chatWindow.scrollTop = chatWindow.scrollHeight;
     }
 
-    // Agrega un mensaje al DOM y lo simula
+    // Agrega un mensaje al DOM
     function appendMessage(msg) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `chat-message chat-${msg.type}`;
 
         const textElement = document.createElement('p');
-        textElement.innerHTML = msg.text; 
+        textElement.innerHTML = msg.text.replace(/\n/g, '<br>'); // Respeta saltos de línea
         messageDiv.appendChild(textElement);
 
-        if (msg.type === 'ia' && msg.imageTopic) {
-            // Lógica para buscar y mostrar la imagen
-            fetchAndDisplayImage(msg.imageTopic, messageDiv);
+        if (msg.type === 'ia') {
+            // Lógica para mostrar imagen (si existe)
+            if (msg.imageTopic) {
+                fetchAndDisplayImage(msg.imageTopic, messageDiv);
+            }
             
-            // Simulación de acciones de IA
+            // Lógica para mostrar Fuentes Consultadas
+            if (msg.sources && msg.sources.length > 0) {
+                const sourcesDiv = document.createElement('div');
+                sourcesDiv.className = 'ia-sources';
+                sourcesDiv.innerHTML = `
+                    <div class="ia-sources-icons">
+                        ${msg.sources.map(s => `<img src="https://www.google.com/s2/favicons?domain=${s}&sz=32" alt="${s.substring(0, s.indexOf('.'))}">`).join('')}
+                    </div>
+                    Fuentes consultadas
+                    <svg class="expand-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 15L17 10H7L12 15Z" fill="currentColor"/></svg>
+                `;
+                messageDiv.appendChild(sourcesDiv);
+            }
+            
+            // Simulación de acciones de IA (Botones de Reacción)
             const actionsDiv = document.createElement('div');
             actionsDiv.className = 'ia-actions';
             actionsDiv.innerHTML = `
@@ -140,77 +173,124 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         chatWindow.appendChild(messageDiv);
-        chatWindow.scrollTop = chatWindow.scrollHeight;
     }
 
-    // Simula la búsqueda de imágenes (PNG o GIF)
+    // Simula la búsqueda de imágenes (PNG o GIF) - REAL: Esto llamaría al backend
     function fetchAndDisplayImage(topic, messageContainer) {
-        // En una implementación real de Flask/Python, esto llamaría a un API de búsqueda
-        // Aquí, usamos una URL de ejemplo (un placeholder de imagen)
-        
-        // Simulación: Si el tema es 'marketing', usa un GIF, si no, usa un PNG
         const imageUrl = topic.toLowerCase().includes('marketing') 
             ? "https://media.giphy.com/media/l4FGyFh1q5QO1xVp6/giphy.gif" // Ejemplo de GIF
             : "https://via.placeholder.com/300x200.png?text=Imagen+relacionada+con+" + encodeURIComponent(topic); // Ejemplo de PNG
-
+        
         const imageElement = document.createElement('img');
         imageElement.src = imageUrl;
         imageElement.alt = `Imagen relacionada con: ${topic}`;
         imageElement.className = 'chat-image';
         
-        // Agrega la imagen después del texto de la IA
         messageContainer.appendChild(imageElement);
     }
     
-    // Simula el envío de una nueva pregunta
-    function handleNewQuery() {
+    // Simula el envío de una nueva pregunta al backend
+    async function handleNewQuery() {
         const query = searchInput.value.trim();
         if (!query) return;
 
-        // 1. Crear un nuevo chat si estamos en la vista inicial o si la conversación está vacía
-        let chatToUpdate = chats.find(c => c.id === currentChatId);
+        // 1. Manejo de archivos adjuntos (simulado)
+        let files = [];
+        if (multiFileInput.files.length > 0) {
+            files = Array.from(multiFileInput.files).map(file => ({
+                name: file.name,
+                type: file.type,
+                size: file.size
+            }));
+            // En una app real, aquí se enviarían los archivos al servidor
+            console.log("Archivos listos para enviar:", files);
+        }
         
+        // 2. Determinar o crear el chat actual
+        let chatToUpdate = chats.find(c => c.id === currentChatId);
         if (!chatToUpdate || chatToUpdate.messages.length === 0) {
             const newId = chats.length > 0 ? chats[chats.length - 1].id + 1 : 1;
-            chatToUpdate = { 
-                id: newId, 
-                title: query.substring(0, 50), 
-                messages: [] 
-            };
+            chatToUpdate = { id: newId, title: query.substring(0, 50), messages: [] };
             chats.push(chatToUpdate);
-            loadHistory(); // Recarga la barra lateral con el nuevo chat
-            loadChat(newId); // Carga el nuevo chat
+            loadHistory(); 
+            loadChat(newId);
         }
 
-        // 2. Agrega el mensaje del usuario
-        chatToUpdate.messages.push({ type: 'user', text: query });
-        
-        // 3. Simula la respuesta de la IA (¡Aquí es donde se integraría tu IA real!)
-        // La IA real también devolvería el 'imageTopic' si fuera necesario.
-        setTimeout(() => {
+        // 3. Agrega el mensaje del usuario (antes de la respuesta de la IA)
+        chatToUpdate.messages.push({ type: 'user', text: query, files: files });
+        loadChat(chatToUpdate.id);
+
+        // 4. Simulación de la llamada al backend Flask
+        try {
+            // **REAL**: Aquí se haría un 'fetch' a tu endpoint Flask (ej: /api/chat)
+            // const response = await fetch('/api/chat', { ... });
+            // const data = await response.json();
+            
+            // **SIMULACIÓN** de la respuesta de la IA
+            const simulatedResponse = {
+                text: await simulateIaResponse(query),
+                imageTopic: query.includes('matemática') ? 'cálculo' : (query.includes('youtube') ? 'marketing' : 'información'),
+                sources: ["pacureia.dev", "google.com", "wikipedia.org"],
+                toolUsed: query.includes('excel') ? 'excel-word' : null 
+            };
+            
+            // 5. Agrega la respuesta de la IA
             chatToUpdate.messages.push({ 
                 type: 'ia', 
-                text: `¡Hola! Entiendo que quieres saber sobre: "${query}". Aquí está mi respuesta simulada.`,
-                imageTopic: query.includes('youtube') ? 'youtube' : 'información'
+                text: simulatedResponse.text,
+                imageTopic: simulatedResponse.imageTopic,
+                sources: simulatedResponse.sources
             });
-            loadChat(chatToUpdate.id); // Recarga la conversación
-        }, 800); 
-
-        // 4. Limpia la entrada
+            
+        } catch (error) {
+            console.error("Error al comunicarse con la IA:", error);
+            chatToUpdate.messages.push({ type: 'ia', text: "Lo siento, hubo un error al procesar tu solicitud. 😥" });
+        }
+        
+        // 6. Recarga la vista y limpia
+        loadChat(chatToUpdate.id); 
         searchInput.value = '';
-        previewContainer.classList.add('hidden'); // Oculta la vista previa de imagen
-        fileInput.value = ''; // Resetea el input de archivos
+        clearFileInput();
+    }
+    
+    // Simulación de respuesta de IA (Para evitar llamadas en el frontend)
+    async function simulateIaResponse(query) {
+        let text = `¡Hola! Entiendo que quieres saber sobre: "${query}". Aquí está mi respuesta simulada con emojis: 👍 `;
+        if (query.includes('matemática') || query.includes('cálculo')) {
+            text += `Para la parte de matemática, usé el módulo especial. El resultado de 5 + 3 es 8. 📐`;
+        } else if (query.includes('youtube')) {
+            text += `Un plan de YouTube incluye optimización SEO y calendario. 🗓️`;
+        } else {
+            text += `Toda la información ha sido analizada con éxito. ✨`;
+        }
+        return text;
     }
 
+    // Limpia la vista previa y el input de archivo
+    function clearFileInput() {
+        multiFileInput.value = ''; 
+        previewContainer.classList.add('hidden');
+        fileNameDisplay.textContent = '';
+        imagePreview.src = '';
+    }
 
     // ============================================================
-    // 4. MANEJO DE EVENTOS
+    // 4. MANEJO DE EVENTOS DEL DOM
     // ============================================================
 
-    // Toggle de la barra lateral (Botón de hamburguesa)
+    // Toggle de la barra lateral (Hamburguesa en móvil, 3 puntos en desktop)
     menuToggle.addEventListener('click', toggleSidebar);
-    closeSidebarBtn.addEventListener('click', toggleSidebar);
-    
+    sidebarOptionsBtn.addEventListener('click', toggleSidebar); // Usamos el botón de 3 puntos para cerrar/abrir en móvil.
+
+    // Botón de Nueva Conversación
+    newChatBtn.addEventListener('click', () => {
+        const newId = chats.length > 0 ? chats[chats.length - 1].id + 1 : 1;
+        const newChat = { id: newId, title: "Nueva Conversación", messages: [] };
+        chats.push(newChat);
+        loadHistory();
+        loadChat(newId);
+    });
+
     // Manejar el envío de la consulta
     searchBtn.addEventListener('click', handleNewQuery);
     searchInput.addEventListener('keypress', (e) => {
@@ -219,45 +299,92 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- Funcionalidad del Botón Herramientas/Upload (El '+') ---
+    // --- Menú de Opciones del Historial (3 puntos en el chat item) ---
     
-    // Muestra/Oculta el menú de Herramientas Y abre el input de archivo
-    toolsOrUploadBtn.addEventListener('click', function(e) {
-        e.stopPropagation(); // Evita que el clic se propague y cierre el menú inmediatamente
+    // Evento genérico para cerrar menús flotantes al hacer clic fuera
+    document.addEventListener('click', (event) => {
+        // Cierra menú de herramientas
+        if (!toolsMenu.contains(event.target) && event.target !== toolsBtn) {
+            toolsMenu.classList.add('hidden');
+        }
+        // Cierra menú de opciones de historial
+        if (!historyOptionsMenu.contains(event.target) && !event.target.closest('.chat-options-dots')) {
+            historyOptionsMenu.classList.add('hidden');
+        }
+    });
+    
+    // Manejo de las opciones del History Menu (simulado)
+    historyOptionsMenu.addEventListener('click', (e) => {
+        const option = e.target.closest('.menu-option');
+        const chatId = historyOptionsMenu.dataset.chatId;
+        if (!option) return;
+
+        const action = option.textContent.trim();
+        const chat = chats.find(c => c.id == chatId);
         
-        // Lógica para abrir el input de archivos al hacer clic en el botón '+'
-        // Esto permite que el botón sirva para ambos propósitos
-        fileInput.click();
+        // **REAL**: Aquí harías una llamada a tu backend para persistir el cambio
+        alert(`Simulando acción: "${action}" en chat: ${chat.title}`);
         
-        // Alternar el menú de Word/Excel
+        if (action === "Borrar") {
+            chats = chats.filter(c => c.id != chatId);
+            loadHistory();
+            loadChat(chats.length > 0 ? chats[chats.length - 1].id : null);
+        }
+        historyOptionsMenu.classList.add('hidden');
+    });
+
+    // --- Botón de Herramientas y Botón de Archivos ---
+
+    // Muestra/Oculta el menú de Herramientas
+    toolsBtn.addEventListener('click', function(e) {
+        e.stopPropagation(); 
+        
         toolsMenu.classList.toggle('hidden');
         
         if (!toolsMenu.classList.contains('hidden')) {
-             // Posicionar el menú (copiado de CSS para el posicionamiento dinámico)
-             const searchGroup = document.querySelector('.search-group');
-             const rect = searchGroup.getBoundingClientRect();
+             // Posicionar el menú arriba del botón Herramientas
+             const rect = toolsBtn.getBoundingClientRect();
              toolsMenu.style.bottom = (window.innerHeight - rect.top + 10) + 'px'; 
-             toolsMenu.style.left = (rect.left + rect.width / 2) + 'px';
-             toolsMenu.style.transform = 'translateX(-50%)'; 
+             toolsMenu.style.left = (rect.left) + 'px'; // Alinear a la izquierda del botón
+             toolsMenu.style.transform = 'none'; // Sin transformación de centrado
         }
     });
+    
+    // Manejo de las opciones del menú Herramientas (simulado)
+    toolsMenu.addEventListener('click', (e) => {
+        const option = e.target.closest('.tool-option');
+        if (!option) return;
 
-    // Cierra el menú de herramientas al hacer clic fuera
-    document.addEventListener('click', (event) => {
-        if (!toolsMenu.contains(event.target) && event.target !== toolsOrUploadBtn) {
-            toolsMenu.classList.add('hidden');
+        const tool = option.dataset.tool;
+        
+        if (tool === 'upload-single-image') {
+            // Simular el clic en el input de archivo, pero solo permitiendo imágenes (para este caso)
+            multiFileInput.setAttribute('accept', 'image/*');
+            multiFileInput.click();
+        } else {
+             // **REAL**: Aquí se podría enviar un mensaje predeterminado al chat o abrir un modal
+            alert(`Simulando inicio de proyecto: ${tool}.`);
         }
+        toolsMenu.classList.add('hidden');
+    });
+
+
+    // Botón '+' (Multi Upload)
+    multiUploadBtn.addEventListener('click', function() {
+        multiFileInput.setAttribute('accept', 'image/*, application/pdf, .doc, .docx, .xls, .xlsx'); // Restablecer a todos los tipos
+        multiFileInput.click();
     });
 
     // --- Manejo de la Vista Previa de Archivos ---
 
-    fileInput.addEventListener('change', function() {
+    multiFileInput.addEventListener('change', function() {
         if (this.files.length > 0) {
             previewContainer.classList.remove('hidden');
             
-            // Muestra el nombre y maneja la vista previa de la primera imagen
+            // Muestra el nombre y maneja la vista previa del primer archivo
             const file = this.files[0];
-            fileNameDisplay.textContent = file.name;
+            const otherCount = this.files.length > 1 ? ` (+${this.files.length - 1} archivos)` : '';
+            fileNameDisplay.textContent = file.name + otherCount;
 
             if (file.type.startsWith('image/')) {
                 const reader = new FileReader();
@@ -266,20 +393,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
                 reader.readAsDataURL(file);
             } else {
-                // Si no es imagen (PDF, DOCX), muestra un icono genérico
-                imagePreview.src = 'https://via.placeholder.com/40x40.png?text=FILE';
+                // Icono genérico para archivos no imagen (PDF, DOCX, etc.)
+                imagePreview.src = 'https://via.placeholder.com/40x40.png?text=DOC';
             }
             
         } else {
-            previewContainer.classList.add('hidden');
+            clearFileInput();
         }
     });
 
-    removeImageBtn.addEventListener('click', function() {
-        fileInput.value = ''; 
-        previewContainer.classList.add('hidden');
-        fileNameDisplay.textContent = '';
-    });
+    removeImageBtn.addEventListener('click', clearFileInput);
     
     // ============================================================
     // 5. INICIALIZACIÓN
