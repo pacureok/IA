@@ -19,6 +19,10 @@ const SVG_ICONS = {
     share: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 14V17C18 18.1046 17.1046 19 16 19H8C6.89543 19 6 18.1046 6 17V14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 15L12 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 6L12 3L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     copy: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16 4H8C6.89543 4 6 4.89543 6 6V18C6 19.1046 6.89543 20 8 20H16C17.1046 20 18 19.1046 18 18V6C18 4.89543 17.1046 4 16 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10H18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     dots: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="5" r="1" fill="currentColor"/><circle cx="12" cy="19" r="1" fill="currentColor"/></svg>',
+    pin: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M17 3L7 13L10 16L20 6L17 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 8L16 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 21V16L9 13V12L5 8L2 11L11 20L12 21Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    unpin: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M17 3L7 13L10 16L20 6L17 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 21V16L9 13V12L5 8L2 11L11 20L12 21Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 18L19 20M14 15L16 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>', // Un pin con línea
+    edit: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M17 3L21 7L13.5 14.5L9 19L3 21L5 15L12.5 7.5L17 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    trash: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 6H21M8 6V4C8 3.44772 8.44772 3 9 3H15C15.5523 3 16 3.44772 16 4V6M10 11V16M14 11V16M19 6L18.2574 19.3364C18.1009 21.0335 16.6385 22 15 22H9C7.36152 22 5.89913 21.0335 5.74259 19.3364L5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 };
 
 const SOURCE_ICON_SVG = '<svg class="source-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM11 19.93C7.05 19.44 4 16.08 4 12C4 7.92 7.05 4.56 11 4.07V19.93ZM13 4.07V19.93C16.95 19.44 20 16.08 20 12C20 7.92 16.95 4.56 13 4.07Z" fill="currentColor"/></svg>';
@@ -50,6 +54,68 @@ function saveHistory() {
     localStorage.setItem('chatHistory', JSON.stringify(history));
 }
 
+function generateTitle(firstQuery) {
+    const cleanQuery = firstQuery.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ ]/g, '').trim();
+    return cleanQuery.substring(0, 30) + (cleanQuery.length > 30 ? '...' : '');
+}
+
+// --- NUEVA LÓGICA DE GESTIÓN DE CHAT ---
+
+function toggleChatMenu(event, chatId) {
+    event.stopPropagation(); // Evita que se active la carga del chat
+    const menu = document.getElementById(`chat-menu-${chatId}`);
+    
+    // Cierra cualquier otro menú abierto
+    document.querySelectorAll('.chat-options-menu').forEach(m => {
+        if (m.id !== `chat-menu-${chatId}`) m.classList.add('hidden');
+    });
+    
+    menu.classList.toggle('hidden');
+}
+
+function renameChat(chatId) {
+    const chat = history[chatId];
+    if (!chat) return;
+
+    const newTitle = prompt("Introduce el nuevo nombre para el chat:", chat.title);
+    if (newTitle && newTitle.trim() !== "") {
+        chat.title = newTitle.trim();
+        saveHistory();
+        renderHistoryList();
+    }
+    document.getElementById(`chat-menu-${chatId}`).classList.add('hidden'); // Cerrar menú
+}
+
+function togglePinChat(chatId) {
+    const chat = history[chatId];
+    if (!chat) return;
+
+    chat.pinned = !chat.pinned;
+    saveHistory();
+    renderHistoryList();
+    document.getElementById(`chat-menu-${chatId}`).classList.add('hidden'); // Cerrar menú
+}
+
+function deleteChat(chatId) {
+    if (confirm("¿Estás seguro de que quieres borrar este chat?")) {
+        delete history[chatId];
+        saveHistory();
+        
+        // Si borramos el chat actual, cargamos el más reciente o uno nuevo
+        if (currentChatId === chatId) {
+            const chatIds = Object.keys(history).sort((a, b) => a > b ? -1 : 1);
+            if (chatIds.length > 0) {
+                loadChat(chatIds[0]);
+            } else {
+                startNewChat();
+            }
+        } else {
+            renderHistoryList();
+        }
+    }
+}
+
+
 function renderHistoryList() {
     const historyList = document.getElementById('historyList');
     historyList.innerHTML = `<div class="history-item new-chat-btn" onclick="startNewChat()">
@@ -59,15 +125,50 @@ function renderHistoryList() {
         Nuevo Chat
     </div>`;
     
-    const chatIds = Object.keys(history).sort((a, b) => a > b ? -1 : 1);
+    // 1. Separar chats fijados de los demás
+    const allChatIds = Object.keys(history);
+    const pinnedChats = allChatIds.filter(id => history[id].pinned).map(id => history[id]);
+    const unpinnedChats = allChatIds.filter(id => !history[id].pinned).map(id => history[id]);
+    
+    // 2. Ordenar los no fijados por fecha (más reciente primero)
+    unpinnedChats.sort((a, b) => b.id - a.id);
+    
+    // 3. Unir: Fijados (sin ordenar por fecha) + No fijados (ordenados por fecha)
+    const sortedChats = pinnedChats.concat(unpinnedChats);
 
-    chatIds.forEach(id => {
-        const chat = history[id];
+    sortedChats.forEach(chat => {
+        const id = chat.id;
         const item = document.createElement('div');
         item.className = `history-item ${id === currentChatId ? 'active' : ''}`;
-        const displayTitle = chat.title || (chat.messages[0] ? chat.messages[0].content.replace(/<[^>]*>?/gm, "").substring(0, 30) + '...' : 'Nuevo Chat');
-        item.textContent = displayTitle;
         item.onclick = () => loadChat(id);
+
+        const displayTitle = chat.title || (chat.messages[0] ? generateTitle(chat.messages[0].content) : 'Nuevo Chat');
+        
+        // Crear el contenedor de título e iconos
+        item.innerHTML = `
+            <div class="chat-title-container">
+                ${chat.pinned ? `<span class="pin-icon">${SVG_ICONS.pin}</span>` : ''}
+                <span class="chat-title-text">${displayTitle}</span>
+            </div>
+            <div class="chat-options-dots" onclick="toggleChatMenu(event, '${id}')">
+                ${SVG_ICONS.dots}
+            </div>
+            <div id="chat-menu-${id}" class="chat-options-menu hidden">
+                <button onclick="togglePinChat('${id}')">
+                    ${chat.pinned ? SVG_ICONS.unpin : SVG_ICONS.pin}
+                    ${chat.pinned ? 'Desfijar' : 'Fijar Chat'}
+                </button>
+                <button onclick="renameChat('${id}')">
+                    ${SVG_ICONS.edit}
+                    Renombrar
+                </button>
+                <button class="delete-btn" onclick="deleteChat('${id}')">
+                    ${SVG_ICONS.trash}
+                    Borrar Chat
+                </button>
+            </div>
+        `;
+
         historyList.appendChild(item);
     });
 }
@@ -81,13 +182,8 @@ function loadChat(id) {
 
 function startNewChat() {
     const newId = Date.now().toString();
-    history[newId] = { title: 'Nuevo Chat', messages: [] };
+    history[newId] = { id: newId, title: 'Nuevo Chat', messages: [], pinned: false };
     loadChat(newId);
-}
-
-function generateTitle(firstQuery) {
-    const cleanQuery = firstQuery.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ ]/g, '').trim();
-    return cleanQuery.substring(0, 30) + (cleanQuery.length > 30 ? '...' : '');
 }
 
 
@@ -193,7 +289,7 @@ function toggleToolsMenu() {
     if (!isHidden) {
         const toolsBtn = document.getElementById('toolsBtn');
         const rect = toolsBtn.getBoundingClientRect();
-        // Alinea el menú justo a la izquierda del botón toolsBtn, ajustando el ancho del menú (200px)
+        // Coloca el menú alineado con la izquierda del botón toolsBtn, ajustando el ancho del menú (200px)
         menu.style.left = (rect.left - 200) + 'px'; 
     }
 }
@@ -213,7 +309,7 @@ function selectTool(toolType) {
         sender: 'ia', 
         content: `<h3 class="result-title">Herramienta de Creación: ${toolName}</h3><p class="result-text">Perfecto. Dime el **título y el contenido** que deseas incluir en tu nuevo ${toolName}. Usa saltos de línea para un mejor formato.</p>`,
         stopped: false, 
-        isToolPrompt: true, // Marca para no mostrar acciones de IA
+        isToolPrompt: true, 
         sources: [] 
     };
     history[currentChatId].messages.push(iaPrompt);
@@ -463,9 +559,10 @@ function renderChatWindow(messages) {
         if (msg.stopped && msg.sender === 'ia') {
              const stopNoticeContainer = document.createElement('div');
              stopNoticeContainer.className = 'stop-notice-container'; 
+             // Usamos un div simple para la alerta de detención, el estilo hará que se vea como en tus imágenes
              stopNoticeContainer.innerHTML = `
                 <div class="stop-notice">
-                    <svg class="stop-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2Z" fill="#3B82F6"/><path d="M12 17L17 12L12 7V17Z" fill="white"/></svg>
+                    <span class="stop-icon">◆</span>
                     Detuviste esta respuesta
                 </div>
              `;
@@ -487,7 +584,7 @@ function renderChatWindow(messages) {
                     finalContent = sourceBar + finalContent;
                 }
                 
-                // Muestra la barra de acciones solo si NO es un prompt de herramienta
+                // Muestra la barra de acciones solo si NO es un prompt o resultado de herramienta
                 if (!msg.isToolPrompt && !msg.isToolResult) { 
                     const actionsBar = createActionsBar(currentChatId, index);
                     finalContent += actionsBar;
@@ -549,6 +646,11 @@ async function buscar() {
     let sources = []; 
     let isCustomResponse = false; 
 
+    // Si es el primer mensaje, generamos el título
+    if (history[currentChatId].messages.length === 1 && !history[currentChatId].title) {
+         history[currentChatId].title = generateTitle(query);
+    }
+    
     // Reiniciamos la barra de entrada y la vista previa inmediatamente
     removeImage();
     searchInput.value = '';
@@ -561,29 +663,22 @@ async function buscar() {
     } 
     // Si no es respuesta personalizada, contactar al servidor
     else {
+        // SIMULACIÓN DE RESPUESTA REAL (REEMPLAZAR CON TU LÓGICA DE FLASK)
         try {
-            const response = await fetch('/buscar', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ query: query, image: image }) 
-            });
+            // Nota: Aquí iría tu fetch real a Flask. 
+            // Para la demostración, usaremos una respuesta simulada:
             
-            const data = await response.json();
-            
-            if (response.ok && data.text) {
-                sources = data.external_sources || [];
-                iaContent = `
-                    <div class="result-header">
-                        <h3 class="result-title">${data.title}</h3>
-                    </div>
-                    <p class="result-text">${data.text}</p>
-                    ${data.url !== '#' && data.url ? `<a href="${data.url}" target="_blank" class="result-link">Ver fuente completa →</a>` : ''}
-                `;
-                textToRead = `${data.title}. El resumen es: ${data.text}`;
-            } else {
-                iaContent = `<p class="error-text">❌ ${data.error || 'Error desconocido al buscar o error de servidor.'}</p>`;
-                textToRead = "Hubo un error al buscar la información.";
-            }
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Simula latencia de red
+
+            sources = [{name: 'Wikipedia', url: '#'}, {name: 'Diccionario', url: '#'}];
+            iaContent = `
+                <div class="result-header">
+                    <h3 class="result-title">Respuesta sobre "${query.substring(0, 20)}..."</h3>
+                </div>
+                <p class="result-text">Esto es un resultado simulado. El tema "${query}" es muy interesante. Deberás completar esta parte con el resultado real de tu servidor Flask. Recuerda que la IA real maneja esto con estilo.</p>
+                <a href="#" target="_blank" class="result-link">Ver fuente completa →</a>
+            `;
+            textToRead = `Respuesta sobre ${query}. Esto es un resultado simulado.`;
             
         } catch (err) {
             iaContent = '<p class="error-text">⚠️ Error de conexión con el servidor.</p>';
@@ -635,7 +730,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // Listener para el botón "¿Qué hora es?" (simulación de quick query)
+    // Listener para el botón de 'Quick Query' (si existe)
     const quickQueryBtn = document.getElementById('quickQueryBtn');
     if (quickQueryBtn) {
         quickQueryBtn.addEventListener('click', () => {
@@ -660,25 +755,41 @@ document.addEventListener('DOMContentLoaded', () => {
     const toolsBtn = document.getElementById('toolsBtn');
     const toolsMenu = document.getElementById('toolsMenu');
     
-    toolsBtn.addEventListener('click', (e) => {
-        e.stopPropagation(); // Evita que el clic propague y cierre el menú inmediatamente
-        toggleToolsMenu();
-    });
-    
-    toolsMenu.querySelectorAll('.tool-option').forEach(option => {
-        option.addEventListener('click', () => {
-            selectTool(option.getAttribute('data-tool'));
+    // Se asegura de que estos elementos existan antes de agregar listeners
+    if (toolsBtn && toolsMenu) {
+        toolsBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); 
+            toggleToolsMenu();
         });
-    });
-    
-    // Ocultar menú si el usuario hace clic fuera de la barra de búsqueda o el menú
+        
+        toolsMenu.querySelectorAll('.tool-option').forEach(option => {
+            option.addEventListener('click', () => {
+                selectTool(option.getAttribute('data-tool'));
+            });
+        });
+    }
+
+    // Ocultar menús si el usuario hace clic fuera de la barra de búsqueda/historial
     document.addEventListener('click', (e) => {
-        const searchGroup = document.querySelector('.search-group');
-        if (!toolsBtn.contains(e.target) && !toolsMenu.contains(e.target) && !searchGroup.contains(e.target) && !toolsMenu.classList.contains('hidden')) {
+        // Cierra menú de herramientas
+        if (toolsMenu && !toolsBtn.contains(e.target) && !toolsMenu.contains(e.target) && !toolsMenu.classList.contains('hidden')) {
             toolsMenu.classList.add('hidden');
         }
-    });
+        
+        // Cierra menús de chat
+        document.querySelectorAll('.chat-options-menu').forEach(m => {
+            if (!m.parentElement.contains(e.target) && !m.classList.contains('hidden')) {
+                 m.classList.add('hidden');
+            }
+        });
+        
+        // Cierra menú de acciones de IA
+        document.querySelectorAll('.options-menu').forEach(m => {
+             if (m.style.display === 'block') m.style.display = 'none';
+        });
 
+    });
+    
     // Listener para detener TTS
     const stopBtn = document.getElementById('stopSpeakerBtn');
     if (stopBtn) stopBtn.addEventListener('click', () => stopSpeaking(true));
