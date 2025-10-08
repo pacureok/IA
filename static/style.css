@@ -13,216 +13,161 @@ body {
     color: var(--text-color);
     font-family: 'Roboto', Arial, sans-serif;
     display: flex;
-    justify-content: center; /* Centra el contenido horizontalmente */
-    align-items: flex-start; /* Alinea el contenido hacia arriba */
+    justify-content: flex-start;
+    align-items: stretch;
     min-height: 100vh;
     margin: 0;
-    padding-top: 50px; /* Espacio desde la parte superior */
+    padding-top: 0;
     box-sizing: border-box;
-    transition: background-color 0.3s;
 }
 
-/* CONTENEDOR PRINCIPAL */
 .container {
-    width: 100%;
-    max-width: 800px; /* Limita el ancho del contenido */
-    padding: 20px;
+    margin: 0;
+    max-width: 900px; 
+    flex-grow: 1;
+    padding: 0 20px 150px 20px; /* Padding inferior para el área de búsqueda fija */
+}
+
+/* -------------------- BARRA LATERAL (HISTORIAL) -------------------- */
+.sidebar {
+    width: 280px;
+    background-color: #242424;
+    min-height: 100vh;
+    padding: 10px;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.5);
+    position: sticky;
+    top: 0;
+}
+
+.history-list {
+    margin-top: 20px;
+    padding: 0;
+}
+
+.new-chat-btn {
+    background-color: #3b3b3b;
+    color: var(--text-color);
+    padding: 10px 15px;
+    border-radius: 20px;
+    margin-bottom: 20px;
+    cursor: pointer;
+    font-weight: 500;
+    text-align: left;
+}
+
+.history-item {
+    color: #b0b0b0;
+    padding: 8px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: left;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    transition: background-color 0.2s;
+}
+
+.history-item:hover, .history-item.active {
+    background-color: #3b3b3b;
+}
+
+/* -------------------- VENTANA DE CHAT Y BURBUJAS -------------------- */
+
+.main-title {
+    /* Mantenemos el estilo, pero lo centramos en el contenedor */
+    font-size: 32px;
+    font-weight: 400;
+    color: var(--accent-color);
+    margin-bottom: 80px;
+    padding-top: 50px;
     text-align: center;
 }
 
-/* TÍTULO PRINCIPAL (Como "Hola YouTuber pacure") */
-.main-title {
-    font-size: 32px;
-    font-weight: 400;
-    color: var(--accent-color); /* Un toque de color */
-    margin-bottom: 80px; /* Espacio grande antes de la búsqueda */
-    padding-top: 50px;
-}
-
-/* MENSAJE DE PROMPT */
-.search-prompt {
-    color: #b0b0b0;
-    font-size: 16px;
-    font-weight: 300;
-    margin-bottom: 10px;
-}
-
-/* SECCIÓN DE BÚSQUEDA */
-.search-group {
-    display: flex;
-    align-items: center;
-    background-color: var(--surface-color);
-    border-radius: 30px; /* Bordes muy redondeados */
-    padding: 10px 20px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
-    margin: 0 auto; /* Centrar la barra de búsqueda */
-    max-width: 650px;
-    transition: box-shadow 0.3s, background-color 0.3s;
-}
-
-.search-group:focus-within {
-    box-shadow: 0 4px 15px rgba(66, 133, 244, 0.5); /* Sombra de enfoque azul */
-}
-
-#searchInput {
+.chat-window {
+    padding: 20px;
     flex-grow: 1;
-    border: none;
-    background: transparent;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.chat-message {
+    display: flex;
+    margin-bottom: 25px;
+    align-items: flex-start;
+    /* Usamos esto para el control visual de la burbuja */
+}
+
+.message-bubble {
+    padding: 12px 18px;
+    border-radius: 20px;
+    max-width: 70%; /* Reducido para parecer más a la imagen */
+    text-align: left;
+    font-size: 16px;
+    line-height: 1.5;
+    word-wrap: break-word;
+}
+
+.bubble-user {
+    background-color: #3a3a3a; /* Gris oscuro para el usuario */
     color: var(--text-color);
-    font-size: 18px;
-    padding: 8px 10px;
-    outline: none;
+    margin-left: auto;
+    border-bottom-right-radius: 4px; /* Esquina más cuadrada */
+    /* Estilo de la imagen */
+    background-color: #4a4a4a; /* Un gris más claro para el usuario */
+    margin-right: 0;
 }
 
-/* BOTÓN DE VOZ */
-.voice-btn {
-    background: transparent;
-    border: none;
+.bubble-ia {
+    /* Eliminamos el borde y usamos un fondo oscuro y plano */
+    background-color: #242424; 
     color: var(--text-color);
-    font-size: 24px;
-    cursor: pointer;
-    padding: 0 10px;
-    transition: color 0.2s;
+    margin-right: auto;
+    border-bottom-left-radius: 4px;
+    /* Estilo para que el texto IA se alinee a la izquierda, pero la burbuja flote */
+    text-align: left;
 }
 
-.voice-btn:hover {
-    color: var(--accent-color);
-}
-
-.voice-btn.listening {
-    color: var(--error-color); /* Rojo para indicar que está grabando */
-}
-
-/* BOTÓN DE BÚSQUEDA (El ícono al final) */
-#searchBtn {
-    background: transparent;
-    border: none;
-    color: var(--accent-color); 
-    cursor: pointer;
-    padding: 0 10px;
-    font-size: 18px;
+/* Estilo para el mensaje de 'Detuviste esta respuesta' */
+.stop-notice {
+    color: #b0b0b0; /* Gris suave */
+    font-weight: 400;
+    margin-top: 5px;
     display: flex;
     align-items: center;
-}
-
-.search-icon {
-    width: 24px;
-    height: 24px;
-    color: #9aa0a6; /* Color gris suave */
-    transition: color 0.2s;
-}
-
-#searchBtn:hover .search-icon {
-    color: var(--accent-color);
-}
-
-#searchBtn:disabled {
-    cursor: not-allowed;
-    opacity: 0.5;
-}
-
-/* ESTILOS DE RESULTADOS */
-.result-section {
-    background-color: var(--surface-color);
-    border-radius: 12px;
-    padding: 30px;
-    margin-top: 40px;
-    text-align: left;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-}
-
-#resultTitle {
-    color: var(--accent-color);
-    font-size: 24px;
-    margin-top: 0;
-    margin-bottom: 10px;
-}
-
-.result-text {
-    line-height: 1.6;
-    margin-bottom: 15px;
-    color: var(--text-color);
-}
-
-.source-badge {
-    display: inline-block;
-    padding: 5px 10px;
-    border-radius: 15px;
-    font-size: 12px;
-    font-weight: bold;
-    margin-bottom: 15px;
-}
-
-.wikipedia {
-    background-color: #004c99;
-    color: white;
-}
-
-/* MENSAJES */
-.loading, .error {
-    margin-top: 20px;
-    padding: 15px;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: 500;
-}
-
-.error {
-    background-color: rgba(255, 102, 102, 0.2);
-    color: var(--error-color);
-}
-
-.time-info {
-    margin-top: 15px;
-    color: #90a4ae;
-    font-style: italic;
     font-size: 14px;
+    /* Alineación de la burbuja de la IA */
+    margin-left: 20px; 
 }
 
-/* BOTONES ADICIONALES (hora y detener) */
-.quick-access-buttons {
-    margin-bottom: 20px;
-    /* Centrado, no queremos que se pegue a los lados */
-    display: flex; 
-    justify-content: center;
-}
-
-.quick-btn, .stop-btn {
-    background-color: var(--surface-color);
-    border: 1px solid #444;
-    color: var(--text-color);
-    padding: 8px 15px;
-    border-radius: 20px;
-    cursor: pointer;
-    font-size: 14px;
-    margin: 0 5px;
-    transition: background-color 0.2s, border-color 0.2s;
-}
-
-.quick-btn:hover, .stop-btn:hover {
-    background-color: #444;
-    border-color: var(--accent-color);
-}
-
-.stop-btn {
-    margin-bottom: 15px;
-}
-
-.hidden {
-    display: none !important;
-}
-
-/* ICONO DE CARGA (SPINNER) */
-.spinner {
-    border: 4px solid rgba(255, 255, 255, 0.1);
-    border-left-color: var(--accent-color);
-    border-radius: 50%;
+.stop-icon {
     width: 20px;
     height: 20px;
-    animation: spin 1s linear infinite;
-    margin: 0 auto 10px;
+    margin-right: 5px;
+    /* Asegúrate de que el path a la imagen sea correcto */
+    background: url("{{ url_for('static', filename='img/imagres.ico') }}") no-repeat center center;
+    background-size: contain;
+    /* El color azul brillante lo daremos por CSS si la imagen es negra o transparente */
+    filter: drop-shadow(0 0 0 #4285F4); /* Simulación de color, puede que necesites un PNG transparente */
 }
 
-@keyframes spin {
-    to { transform: rotate(360deg); }
+/* -------------------- SECCIÓN DE BÚSQUEDA (FIJA) -------------------- */
+.search-section {
+    position: fixed;
+    bottom: 0;
+    left: 280px; /* Ajustar por el ancho del sidebar */
+    right: 0;
+    padding: 20px 30px;
+    background-color: var(--bg-color);
+    box-shadow: 0 -5px 10px rgba(0, 0, 0, 0.5);
+    text-align: center;
+    z-index: 1000;
 }
+
+.search-group {
+    max-width: 800px;
+    /* Mantenemos el resto de estilos de la barra de búsqueda */
+}
+
+/* --- ESTILOS DE COMPONENTES ADICIONALES --- */
+/* Mantenemos los estilos de .quick-btn, #searchInput, .voice-btn, #searchBtn, .search-icon, .hidden, .spinner, etc. */
+/* Asegúrate de que los estilos anteriores de estos elementos se mantengan o se peguen aquí. */
