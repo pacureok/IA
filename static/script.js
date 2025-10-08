@@ -4,20 +4,21 @@ document.addEventListener('DOMContentLoaded', () => {
     // ============================================================
     const sidebar = document.getElementById('sidebar');
     const menuToggle = document.getElementById('menuToggle');
-    const sidebarOptionsBtn = document.getElementById('sidebarOptionsBtn'); // Botón de 3 puntos en la cabecera del sidebar
+    const sidebarOptionsBtn = document.getElementById('sidebarOptionsBtn');
     const mainContentWrapper = document.getElementById('mainContentWrapper');
     const newChatBtn = document.getElementById('newChatBtn');
     const historyList = document.getElementById('historyList');
     const chatWindow = document.getElementById('chatWindow');
+    const httpsAiBtn = document.getElementById('httpsAiBtn');
     
     // Menús contextuales
     const historyOptionsMenu = document.getElementById('historyOptionsMenu');
     const toolsMenu = document.getElementById('toolsMenu');
     
     // Elementos de la barra de búsqueda
-    const multiUploadBtn = document.getElementById('multiUploadBtn'); // Botón '+'
-    const multiFileInput = document.getElementById('multiFileInput'); // Input para 10 archivos
-    const toolsBtn = document.getElementById('toolsBtn'); // Botón "Herramientas"
+    const multiUploadBtn = document.getElementById('multiUploadBtn');
+    const multiFileInput = document.getElementById('multiFileInput');
+    const toolsBtn = document.getElementById('toolsBtn');
     const searchInput = document.getElementById('searchInput');
     const searchBtn = document.getElementById('searchBtn');
     const previewContainer = document.getElementById('imagePreviewContainer');
@@ -26,7 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const removeImageBtn = document.getElementById('removeImageBtn');
 
     // ============================================================
-    // 2. ESTRUCTURA DE DATOS (Simulación de historial y chat)
+    // 2. ESTRUCTURA DE DATOS
     // ============================================================
     let currentChatId = null;
     let chats = [
@@ -37,26 +38,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 { type: 'user', text: "Dame un plan de marketing para mi canal de YouTube." },
                 { 
                     type: 'ia', 
-                    text: "Un excelente plan para un canal de YouTube debe centrarse en la creación de contenido de alta calidad y la optimización SEO. Los pilares son: 1. Investigación de Palabras Clave. 2. Calendario Editorial Consistente. 3. Promoción Cruzada en redes. 🚀 ¡A crecer! 😄", 
+                    text: "Un excelente plan para un canal de YouTube debe centrarse en la creación de contenido de alta calidad y la optimización SEO. 🚀 ¡A crecer! 😄", 
                     imageTopic: "marketing digital",
                     sources: ["youtube.com", "blogmarketing.net", "seo-tools.org"]
                 }
             ]
         },
-        // ... otros chats iniciales
     ];
 
     // ============================================================
     // 3. FUNCIONES DE MANEJO DE VISTAS
     // ============================================================
 
-    // Maneja la apertura y cierre de la barra lateral (Botón de 3 puntos arriba)
     function toggleSidebar() {
         sidebar.classList.toggle('open');
         mainContentWrapper.classList.toggle('sidebar-open');
     }
 
-    // Carga los elementos del historial en la barra lateral con los 3 puntos
     function loadHistory() {
         historyList.innerHTML = '';
         chats.forEach(chat => {
@@ -68,47 +66,40 @@ document.addEventListener('DOMContentLoaded', () => {
                 <button class="chat-options-dots" aria-label="Opciones de chat"></button>
             `;
             
-            // Evento para cargar el chat al hacer clic en el nombre (subpágina)
             item.querySelector('span').addEventListener('click', () => {
                 loadChat(chat.id);
-                if (window.innerWidth <= 1024) { // Cierra la sidebar en móvil/tablet
+                if (window.innerWidth <= 1024) { 
                     toggleSidebar(); 
                 }
             });
 
-            // Evento para el menú contextual de opciones (3 puntos)
             item.querySelector('.chat-options-dots').addEventListener('click', (e) => {
-                e.stopPropagation(); // Evita que se dispare el evento de cargar chat
+                e.stopPropagation(); 
                 showHistoryMenu(e.currentTarget, chat.id);
             });
 
             historyList.appendChild(item);
         });
         
-        // Carga el chat más reciente por defecto
         if (chats.length > 0 && currentChatId === null) {
             loadChat(chats[chats.length - 1].id);
         }
     }
 
-    // Muestra el menú contextual de opciones de un chat específico
     function showHistoryMenu(buttonElement, chatId) {
         historyOptionsMenu.dataset.chatId = chatId;
         const rect = buttonElement.getBoundingClientRect();
         
-        // Posicionar el menú debajo y a la izquierda del botón
         historyOptionsMenu.style.top = `${rect.bottom + 5}px`;
         historyOptionsMenu.style.left = `${rect.right - historyOptionsMenu.offsetWidth}px`;
 
         historyOptionsMenu.classList.remove('hidden');
     }
     
-    // Carga y muestra una conversación específica (simulando subpágina)
     function loadChat(chatId) {
         currentChatId = chatId;
         const chat = chats.find(c => c.id === chatId);
 
-        // Actualiza el historial activo
         document.querySelectorAll('.history-item').forEach(item => {
             item.classList.remove('active');
             if (parseInt(item.dataset.chatId) === chatId) {
@@ -116,7 +107,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
-        // Limpia y carga los mensajes en la ventana de chat
         chatWindow.innerHTML = '';
         
         if (!chat || chat.messages.length === 0) {
@@ -128,23 +118,27 @@ document.addEventListener('DOMContentLoaded', () => {
             appendMessage(msg);
         });
         
-        // Desplazarse al final
         chatWindow.scrollTop = chatWindow.scrollHeight;
     }
 
-    // Agrega un mensaje al DOM
     function appendMessage(msg) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `chat-message chat-${msg.type}`;
 
         const textElement = document.createElement('p');
-        textElement.innerHTML = msg.text.replace(/\n/g, '<br>'); // Respeta saltos de línea
+        textElement.innerHTML = msg.text.replace(/\n/g, '<br>');
         messageDiv.appendChild(textElement);
 
         if (msg.type === 'ia') {
-            // Lógica para mostrar imagen (si existe)
+            
+            // Lógica para el Reproductor de Música
+            if (msg.musicUrl) {
+                appendMusicPlayer(msg.musicUrl, messageDiv);
+            }
+            
+            // Lógica para mostrar imagen (simulada)
             if (msg.imageTopic) {
-                fetchAndDisplayImage(msg.imageTopic, messageDiv);
+                fetchAndDisplayImage(msg.imageTopic, messageDiv); 
             }
             
             // Lógica para mostrar Fuentes Consultadas
@@ -175,11 +169,23 @@ document.addEventListener('DOMContentLoaded', () => {
         chatWindow.appendChild(messageDiv);
     }
 
-    // Simula la búsqueda de imágenes (PNG o GIF) - REAL: Esto llamaría al backend
+    function appendMusicPlayer(musicUrl, messageContainer) {
+        const audioDiv = document.createElement('div');
+        audioDiv.className = 'music-player';
+        audioDiv.innerHTML = `
+            <audio controls>
+                <source src="${musicUrl}" type="audio/mpeg">
+                Tu navegador no soporta el reproductor de audio.
+            </audio>
+            <a href="${musicUrl}" download="pacure_music.mp3" class="download-music-btn">Descargar MP3</a>
+        `;
+        messageContainer.appendChild(audioDiv);
+    }
+    
     function fetchAndDisplayImage(topic, messageContainer) {
         const imageUrl = topic.toLowerCase().includes('marketing') 
-            ? "https://media.giphy.com/media/l4FGyFh1q5QO1xVp6/giphy.gif" // Ejemplo de GIF
-            : "https://via.placeholder.com/300x200.png?text=Imagen+relacionada+con+" + encodeURIComponent(topic); // Ejemplo de PNG
+            ? "https://media.giphy.com/media/l4FGyFh1q5QO1xVp6/giphy.gif"
+            : "https://via.placeholder.com/300x200.png?text=Imagen+relacionada+con+" + encodeURIComponent(topic); 
         
         const imageElement = document.createElement('img');
         imageElement.src = imageUrl;
@@ -188,22 +194,24 @@ document.addEventListener('DOMContentLoaded', () => {
         
         messageContainer.appendChild(imageElement);
     }
-    
-    // Simula el envío de una nueva pregunta al backend
+
+    // Envío de la consulta (REAL)
     async function handleNewQuery() {
         const query = searchInput.value.trim();
         if (!query) return;
 
-        // 1. Manejo de archivos adjuntos (simulado)
-        let files = [];
+        // 1. Recolección de archivos adjuntos (FormData)
+        const formData = new FormData();
+        formData.append('query', query);
+        
+        const filesInfo = [];
         if (multiFileInput.files.length > 0) {
-            files = Array.from(multiFileInput.files).map(file => ({
-                name: file.name,
-                type: file.type,
-                size: file.size
-            }));
-            // En una app real, aquí se enviarían los archivos al servidor
-            console.log("Archivos listos para enviar:", files);
+            for (const file of multiFileInput.files) {
+                // Adjunta el archivo real para el backend de Flask
+                formData.append('files', file); 
+                // Guarda info simple para el frontend (historial)
+                filesInfo.push({ name: file.name, type: file.type, size: file.size }); 
+            }
         }
         
         // 2. Determinar o crear el chat actual
@@ -216,57 +224,50 @@ document.addEventListener('DOMContentLoaded', () => {
             loadChat(newId);
         }
 
-        // 3. Agrega el mensaje del usuario (antes de la respuesta de la IA)
-        chatToUpdate.messages.push({ type: 'user', text: query, files: files });
+        // 3. Agrega el mensaje del usuario
+        chatToUpdate.messages.push({ type: 'user', text: query, files: filesInfo });
+        
+        // 4. Muestra mensaje de "escribiendo"
+        const typingMessage = { type: 'ia', text: "PACURE IA está escribiendo... 🤖" };
+        chatToUpdate.messages.push(typingMessage);
         loadChat(chatToUpdate.id);
-
-        // 4. Simulación de la llamada al backend Flask
+        
+        // 5. Llama al backend Flask
         try {
-            // **REAL**: Aquí se haría un 'fetch' a tu endpoint Flask (ej: /api/chat)
-            // const response = await fetch('/api/chat', { ... });
-            // const data = await response.json();
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                body: formData // Envía el FormData con query y archivos
+            });
             
-            // **SIMULACIÓN** de la respuesta de la IA
-            const simulatedResponse = {
-                text: await simulateIaResponse(query),
-                imageTopic: query.includes('matemática') ? 'cálculo' : (query.includes('youtube') ? 'marketing' : 'información'),
-                sources: ["pacureia.dev", "google.com", "wikipedia.org"],
-                toolUsed: query.includes('excel') ? 'excel-word' : null 
-            };
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
             
-            // 5. Agrega la respuesta de la IA
+            const data = await response.json();
+            
+            // 6. Reemplaza el mensaje de tipeo con la respuesta real
+            chatToUpdate.messages.pop(); 
+            
             chatToUpdate.messages.push({ 
                 type: 'ia', 
-                text: simulatedResponse.text,
-                imageTopic: simulatedResponse.imageTopic,
-                sources: simulatedResponse.sources
+                text: data.text,
+                imageTopic: data.imageTopic,
+                sources: data.sources,
+                musicUrl: data.musicUrl 
             });
             
         } catch (error) {
             console.error("Error al comunicarse con la IA:", error);
-            chatToUpdate.messages.push({ type: 'ia', text: "Lo siento, hubo un error al procesar tu solicitud. 😥" });
+            chatToUpdate.messages.pop(); 
+            chatToUpdate.messages.push({ type: 'ia', text: `Lo siento, el backend falló. Error: ${error.message}. Asegúrate de que Flask esté corriendo. 😥` });
         }
         
-        // 6. Recarga la vista y limpia
+        // 7. Recarga la vista y limpia
         loadChat(chatToUpdate.id); 
         searchInput.value = '';
         clearFileInput();
     }
-    
-    // Simulación de respuesta de IA (Para evitar llamadas en el frontend)
-    async function simulateIaResponse(query) {
-        let text = `¡Hola! Entiendo que quieres saber sobre: "${query}". Aquí está mi respuesta simulada con emojis: 👍 `;
-        if (query.includes('matemática') || query.includes('cálculo')) {
-            text += `Para la parte de matemática, usé el módulo especial. El resultado de 5 + 3 es 8. 📐`;
-        } else if (query.includes('youtube')) {
-            text += `Un plan de YouTube incluye optimización SEO y calendario. 🗓️`;
-        } else {
-            text += `Toda la información ha sido analizada con éxito. ✨`;
-        }
-        return text;
-    }
 
-    // Limpia la vista previa y el input de archivo
     function clearFileInput() {
         multiFileInput.value = ''; 
         previewContainer.classList.add('hidden');
@@ -278,11 +279,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // 4. MANEJO DE EVENTOS DEL DOM
     // ============================================================
 
-    // Toggle de la barra lateral (Hamburguesa en móvil, 3 puntos en desktop)
     menuToggle.addEventListener('click', toggleSidebar);
-    sidebarOptionsBtn.addEventListener('click', toggleSidebar); // Usamos el botón de 3 puntos para cerrar/abrir en móvil.
-
-    // Botón de Nueva Conversación
+    sidebarOptionsBtn.addEventListener('click', toggleSidebar); 
     newChatBtn.addEventListener('click', () => {
         const newId = chats.length > 0 ? chats[chats.length - 1].id + 1 : 1;
         const newChat = { id: newId, title: "Nueva Conversación", messages: [] };
@@ -290,8 +288,13 @@ document.addEventListener('DOMContentLoaded', () => {
         loadHistory();
         loadChat(newId);
     });
+    
+    // Botón HTTPS AI
+    httpsAiBtn.addEventListener('click', () => {
+        alert("Redirigiendo a la página de Solicitudes HTTPS AI. Aquí puedes interactuar con la IA mediante peticiones estructuradas (Subpágina sin interfaz de chat).");
+        // En una app real: window.location.href = '/https-ai-interface'; 
+    });
 
-    // Manejar el envío de la consulta
     searchBtn.addEventListener('click', handleNewQuery);
     searchInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
@@ -299,21 +302,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- Menú de Opciones del Historial (3 puntos en el chat item) ---
-    
-    // Evento genérico para cerrar menús flotantes al hacer clic fuera
     document.addEventListener('click', (event) => {
-        // Cierra menú de herramientas
         if (!toolsMenu.contains(event.target) && event.target !== toolsBtn) {
             toolsMenu.classList.add('hidden');
         }
-        // Cierra menú de opciones de historial
         if (!historyOptionsMenu.contains(event.target) && !event.target.closest('.chat-options-dots')) {
             historyOptionsMenu.classList.add('hidden');
         }
     });
-    
-    // Manejo de las opciones del History Menu (simulado)
+
     historyOptionsMenu.addEventListener('click', (e) => {
         const option = e.target.closest('.menu-option');
         const chatId = historyOptionsMenu.dataset.chatId;
@@ -322,7 +319,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const action = option.textContent.trim();
         const chat = chats.find(c => c.id == chatId);
         
-        // **REAL**: Aquí harías una llamada a tu backend para persistir el cambio
         alert(`Simulando acción: "${action}" en chat: ${chat.title}`);
         
         if (action === "Borrar") {
@@ -333,24 +329,20 @@ document.addEventListener('DOMContentLoaded', () => {
         historyOptionsMenu.classList.add('hidden');
     });
 
-    // --- Botón de Herramientas y Botón de Archivos ---
-
-    // Muestra/Oculta el menú de Herramientas
     toolsBtn.addEventListener('click', function(e) {
         e.stopPropagation(); 
         
         toolsMenu.classList.toggle('hidden');
         
         if (!toolsMenu.classList.contains('hidden')) {
-             // Posicionar el menú arriba del botón Herramientas
              const rect = toolsBtn.getBoundingClientRect();
              toolsMenu.style.bottom = (window.innerHeight - rect.top + 10) + 'px'; 
-             toolsMenu.style.left = (rect.left) + 'px'; // Alinear a la izquierda del botón
-             toolsMenu.style.transform = 'none'; // Sin transformación de centrado
+             toolsMenu.style.left = (rect.left) + 'px';
+             toolsMenu.style.transform = 'none';
         }
     });
     
-    // Manejo de las opciones del menú Herramientas (simulado)
+    // Manejo de las opciones del menú Herramientas
     toolsMenu.addEventListener('click', (e) => {
         const option = e.target.closest('.tool-option');
         if (!option) return;
@@ -358,30 +350,30 @@ document.addEventListener('DOMContentLoaded', () => {
         const tool = option.dataset.tool;
         
         if (tool === 'upload-single-image') {
-            // Simular el clic en el input de archivo, pero solo permitiendo imágenes (para este caso)
             multiFileInput.setAttribute('accept', 'image/*');
             multiFileInput.click();
-        } else {
-             // **REAL**: Aquí se podría enviar un mensaje predeterminado al chat o abrir un modal
-            alert(`Simulando inicio de proyecto: ${tool}.`);
+        } else if (tool === 'music') {
+            searchInput.value = "Crea una música electrónica alegre de 15 segundos.";
+            searchInput.focus();
+        } else if (tool === 'canvas') {
+             searchInput.value = "Diseña un diagrama de flujo para la aprobación de documentos.";
+             searchInput.focus();
+        } else if (tool === 'excel-word') {
+             searchInput.value = "Genera un resumen ejecutivo de un documento de texto para proyecto Word.";
+             searchInput.focus();
         }
         toolsMenu.classList.add('hidden');
     });
 
-
-    // Botón '+' (Multi Upload)
     multiUploadBtn.addEventListener('click', function() {
-        multiFileInput.setAttribute('accept', 'image/*, application/pdf, .doc, .docx, .xls, .xlsx'); // Restablecer a todos los tipos
+        multiFileInput.setAttribute('accept', 'image/*, application/pdf, .doc, .docx, .xls, .xlsx'); 
         multiFileInput.click();
     });
-
-    // --- Manejo de la Vista Previa de Archivos ---
 
     multiFileInput.addEventListener('change', function() {
         if (this.files.length > 0) {
             previewContainer.classList.remove('hidden');
             
-            // Muestra el nombre y maneja la vista previa del primer archivo
             const file = this.files[0];
             const otherCount = this.files.length > 1 ? ` (+${this.files.length - 1} archivos)` : '';
             fileNameDisplay.textContent = file.name + otherCount;
@@ -393,7 +385,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
                 reader.readAsDataURL(file);
             } else {
-                // Icono genérico para archivos no imagen (PDF, DOCX, etc.)
                 imagePreview.src = 'https://via.placeholder.com/40x40.png?text=DOC';
             }
             
