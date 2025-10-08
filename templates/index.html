@@ -3,13 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PACUR Buscador</title> 
+    <title>PACUR Buscador</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-</head>
+    
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/imagres.ico') }}"> 
+    </head>
 <body>
+    <div class="sidebar">
+        <div id="historyList" class="history-list">
+            <div class="history-item new-chat-btn">➕ Nuevo Chat</div>
+        </div>
+    </div>
+
     <div class="container">
-        <h1 class="main-title">Hola USARIO</h1>
+        <h1 class="main-title">Hola YouTuber pacure</h1>
+        
+        <div id="chatWindow" class="chat-window">
+            </div>
 
         <div class="quick-access-buttons">
             <button id="timeWeatherBtn" class="quick-btn">¿Qué hora es?</button>
@@ -24,7 +35,8 @@
                     placeholder="Escribe o habla tu consulta..." 
                     autocomplete="off"
                 >
-                <button id="voiceBtn" class="voice-btn">🎤</button> <button id="searchBtn">
+                <button id="voiceBtn" class="voice-btn">🎤</button>
+                <button id="searchBtn">
                     <svg class="search-icon" viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
                         <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
                     </svg>
@@ -39,16 +51,7 @@
         
         <div id="error" class="error hidden"></div>
         
-        <div id="timeInfo" class="time-info hidden"></div>
-        
-        <div id="resultSection" class="result-section hidden">
-            <div class="source-badge" id="sourceBadge"></div>
-            <h2 id="resultTitle"></h2>
-            <button id="stopSpeakerBtn" class="stop-btn hidden">⏹️ Detener Lectura</button>
-            <div id="resultText" class="result-text"></div>
-            <a id="resultLink" href="#" target="_blank" class="result-link">Ver fuente completa →</a>
         </div>
-    </div>
     
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
