@@ -1,4 +1,4 @@
-// --- VARIABLES GLOBALES Y CACHÉ ---
+// --- VARIABLES GLOBALES Y CACHÉ --- 
 let speaking = false;
 let currentChatId = null; 
 let history = {}; // { chat_id: {title: '...', messages: [{sender: 'user/ia', content: '...', stopped: false, sources: []}]}, ... }
