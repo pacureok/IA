@@ -1,207 +1,228 @@
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+/* VARIABLES DE COLOR */
+:root {
+    --bg-color: #1a1a1a;        /* Fondo principal oscuro */
+    --surface-color: #2c2c2c;   /* Color de la tarjeta o barra de búsqueda */
+    --text-color: #e0e0e0;      /* Texto principal claro */
+    --accent-color: #4285F4;    /* Azul de Google/enfoque */
+    --error-color: #FF6666;     /* Rojo para errores */
 }
 
+/* ESTILOS GLOBALES Y FONDO */
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    min-height: 100vh;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: 'Roboto', Arial, sans-serif;
     display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 20px;
+    justify-content: center; /* Centra el contenido horizontalmente */
+    align-items: flex-start; /* Alinea el contenido hacia arriba */
+    min-height: 100vh;
+    margin: 0;
+    padding-top: 50px; /* Espacio desde la parte superior */
+    box-sizing: border-box;
+    transition: background-color 0.3s;
 }
 
+/* CONTENEDOR PRINCIPAL */
 .container {
-    background: white;
-    border-radius: 20px;
-    padding: 40px;
-    max-width: 900px;
     width: 100%;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    max-width: 800px; /* Limita el ancho del contenido */
+    padding: 20px;
+    text-align: center;
 }
 
-h1 {
-    color: #333;
+/* TÍTULO PRINCIPAL (Como "Hola YouTuber pacure") */
+.main-title {
+    font-size: 32px;
+    font-weight: 400;
+    color: var(--accent-color); /* Un toque de color */
+    margin-bottom: 80px; /* Espacio grande antes de la búsqueda */
+    padding-top: 50px;
+}
+
+/* MENSAJE DE PROMPT */
+.search-prompt {
+    color: #b0b0b0;
+    font-size: 16px;
+    font-weight: 300;
     margin-bottom: 10px;
-    font-size: 2.5em;
-    text-align: center;
 }
 
-.subtitle {
-    text-align: center;
-    color: #666;
-    margin-bottom: 30px;
-    font-size: 1.1em;
-}
-
-.search-section {
-    margin-bottom: 30px;
-}
-
+/* SECCIÓN DE BÚSQUEDA */
 .search-group {
     display: flex;
-    gap: 10px;
+    align-items: center;
+    background-color: var(--surface-color);
+    border-radius: 30px; /* Bordes muy redondeados */
+    padding: 10px 20px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+    margin: 0 auto; /* Centrar la barra de búsqueda */
+    max-width: 650px;
+    transition: box-shadow 0.3s, background-color 0.3s;
+}
+
+.search-group:focus-within {
+    box-shadow: 0 4px 15px rgba(66, 133, 244, 0.5); /* Sombra de enfoque azul */
 }
 
 #searchInput {
-    flex: 1;
-    padding: 15px 20px;
-    border: 2px solid #e0e0e0;
-    border-radius: 10px;
-    font-size: 16px;
-    transition: border-color 0.3s;
-}
-
-#searchInput:focus {
-    outline: none;
-    border-color: #667eea;
-}
-
-#searchBtn {
-    padding: 15px 30px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    flex-grow: 1;
     border: none;
-    border-radius: 10px;
-    font-size: 16px;
-    font-weight: 600;
+    background: transparent;
+    color: var(--text-color);
+    font-size: 18px;
+    padding: 8px 10px;
+    outline: none;
+}
+
+/* BOTÓN DE VOZ */
+.voice-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-color);
+    font-size: 24px;
     cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s;
+    padding: 0 10px;
+    transition: color 0.2s;
 }
 
-#searchBtn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+.voice-btn:hover {
+    color: var(--accent-color);
 }
 
-#searchBtn:active {
-    transform: translateY(0);
+.voice-btn.listening {
+    color: var(--error-color); /* Rojo para indicar que está grabando */
+}
+
+/* BOTÓN DE BÚSQUEDA (El ícono al final) */
+#searchBtn {
+    background: transparent;
+    border: none;
+    color: var(--accent-color); 
+    cursor: pointer;
+    padding: 0 10px;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+}
+
+.search-icon {
+    width: 24px;
+    height: 24px;
+    color: #9aa0a6; /* Color gris suave */
+    transition: color 0.2s;
+}
+
+#searchBtn:hover .search-icon {
+    color: var(--accent-color);
 }
 
 #searchBtn:disabled {
-    opacity: 0.6;
     cursor: not-allowed;
-    transform: none;
+    opacity: 0.5;
 }
 
-.loading {
-    text-align: center;
-    padding: 30px;
-}
-
-.spinner {
-    border: 4px solid #f3f3f3;
-    border-top: 4px solid #667eea;
-    border-radius: 50%;
-    width: 50px;
-    height: 50px;
-    animation: spin 1s linear infinite;
-    margin: 0 auto 20px;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-.error {
-    background: #fee;
-    color: #c33;
-    padding: 15px;
-    border-radius: 10px;
-    border-left: 4px solid #c33;
-    margin-bottom: 20px;
-}
-
-.time-info {
-    background: #e3f2fd;
-    color: #1565c0;
-    padding: 10px 15px;
-    border-radius: 8px;
-    margin-bottom: 20px;
-    text-align: center;
-    font-size: 0.95em;
-}
-
+/* ESTILOS DE RESULTADOS */
 .result-section {
-    margin-top: 30px;
-    animation: fadeIn 0.5s ease-in;
+    background-color: var(--surface-color);
+    border-radius: 12px;
+    padding: 30px;
+    margin-top: 40px;
+    text-align: left;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+#resultTitle {
+    color: var(--accent-color);
+    font-size: 24px;
+    margin-top: 0;
+    margin-bottom: 10px;
+}
+
+.result-text {
+    line-height: 1.6;
+    margin-bottom: 15px;
+    color: var(--text-color);
 }
 
 .source-badge {
     display: inline-block;
-    padding: 6px 12px;
-    border-radius: 20px;
-    font-size: 0.85em;
-    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 12px;
+    font-weight: bold;
     margin-bottom: 15px;
 }
 
-.source-badge.wikipedia {
-    background: #e8f5e9;
-    color: #2e7d32;
+.wikipedia {
+    background-color: #004c99;
+    color: white;
 }
 
-.source-badge.scraping {
-    background: #fff3e0;
-    color: #e65100;
+/* MENSAJES */
+.loading, .error {
+    margin-top: 20px;
+    padding: 15px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 500;
 }
 
-#resultTitle {
-    color: #333;
+.error {
+    background-color: rgba(255, 102, 102, 0.2);
+    color: var(--error-color);
+}
+
+.time-info {
+    margin-top: 15px;
+    color: #90a4ae;
+    font-style: italic;
+    font-size: 14px;
+}
+
+/* BOTONES ADICIONALES (hora y detener) */
+.quick-access-buttons {
     margin-bottom: 20px;
-    font-size: 1.8em;
+    /* Centrado, no queremos que se pegue a los lados */
+    display: flex; 
+    justify-content: center;
 }
 
-.result-text {
-    background: #f8f9fa;
-    border: 1px solid #e0e0e0;
-    border-radius: 10px;
-    padding: 20px;
-    line-height: 1.8;
-    color: #333;
+.quick-btn, .stop-btn {
+    background-color: var(--surface-color);
+    border: 1px solid #444;
+    color: var(--text-color);
+    padding: 8px 15px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 14px;
+    margin: 0 5px;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.quick-btn:hover, .stop-btn:hover {
+    background-color: #444;
+    border-color: var(--accent-color);
+}
+
+.stop-btn {
     margin-bottom: 15px;
-    font-size: 1.05em;
-}
-
-.result-link {
-    display: inline-block;
-    color: #667eea;
-    text-decoration: none;
-    font-weight: 600;
-    transition: color 0.3s;
-}
-
-.result-link:hover {
-    color: #764ba2;
 }
 
 .hidden {
-    display: none;
+    display: none !important;
 }
 
-@media (max-width: 600px) {
-    .container {
-        padding: 20px;
-    }
-    
-    h1 {
-        font-size: 2em;
-    }
-    
-    .search-group {
-        flex-direction: column;
-    }
-    
-    #searchBtn {
-        width: 100%;
-    }
+/* ICONO DE CARGA (SPINNER) */
+.spinner {
+    border: 4px solid rgba(255, 255, 255, 0.1);
+    border-left-color: var(--accent-color);
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 10px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
 }
