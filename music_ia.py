@@ -1,76 +1,83 @@
-# music_ia.py
+# music_creator.py
 
 from midiutil import MIDIFile
 import random
-import time
 import os
-from typing import Union, List
 
-# Definición de notas MIDI
-NOTES_MAJOR = [60, 62, 64, 65, 67, 69, 71, 72] 
-NOTES_MINOR = [60, 62, 63, 65, 67, 68, 70, 72] 
+# Directorio donde se guardarán los archivos temporales de música
+MUSIC_DIR = "generated_music"
+os.makedirs(MUSIC_DIR, exist_ok=True)
 
-def generate_music(genre: str, mood: str, duration_sec: int = 15) -> str:
+def get_genre_parameters(genre):
     """
-    Crea un archivo MIDI y SIMULA la ruta de un MP3. 
-    Esto evita la necesidad de ffmpeg en el servidor de Render.
+    Define parámetros musicales básicos basados en el género.
+    """
+    genre = genre.lower()
+    if "jazz" in genre or "blues" in genre:
+        # Tono más bajo y ritmo más lento, con más acordes.
+        return 70, 0.75, [0, 4, 7, 10]  # BPM, Beat length, Chord structure (Minor 7th)
+    elif "electrónica" in genre or "techno" in genre or "dance" in genre:
+        # Ritmo rápido y repetitivo.
+        return 130, 0.5, [0, 7, 12]  # BPM, Beat length, Chord structure (Power chord)
+    elif "pop" in genre or "rock" in genre:
+        # Ritmo intermedio, notas sencillas.
+        return 100, 1, [0, 4, 7]  # BPM, Beat length, Chord structure (Major chord)
+    else:
+        # Por defecto: ambiente (Ambient/Simple)
+        return 80, 2, [0, 7] # BPM, Beat length, Chord structure (Octave)
+
+
+def generate_music_sequence(genre="ambiente"):
+    """
+    Genera una secuencia MIDI simple y la guarda en un archivo.
+    Retorna el nombre del archivo generado.
     """
     
-    # 1. Parámetros basados en el estado de ánimo y género (Igual)
-    tempo = 120
-    volume = 100
-    instrument = 0
-    scale = NOTES_MAJOR
+    # 1. Definir parámetros del género
+    tempo, beat_length, chord_structure = get_genre_parameters(genre)
     
-    if "triste" in mood.lower() or "melancólic" in mood.lower():
-        scale = NOTES_MINOR
-        tempo = 80
-        instrument = 48 
-    elif "tecn" in genre.lower() or "dance" in genre.lower():
-        instrument = 118
-        tempo = 140
-    
-    # Generar un nombre de archivo único con extensión .mid
-    output_filename_mid = f"music_{int(time.time())}_{genre}_{mood}.mid"
-    
-    # IMPORTANTE: Generamos la ruta de salida con la extensión .mp3 para el FRONTEND,
-    # aunque en realidad guardaremos un .mid en el backend.
-    output_filename_mp3_simulated = output_filename_mid.replace(".mid", ".mp3")
-    output_path_mid = os.path.join(os.getcwd(), 'static', 'music_output', output_filename_mid)
-
-    # Asegurarse de que el directorio de salida exista
-    os.makedirs(os.path.dirname(output_path_mid), exist_ok=True)
-    
-    # 2. Creación del archivo MIDI (Igual)
-    MyMIDI = MIDIFile(1)
+    # 2. Configuración MIDI
     track = 0
-    time_cursor = 0
     channel = 0
+    time = 0    # En segundos
+    duration = 4 # Duración total de la pieza en segundos (simple)
+    volume = 100 # Rango 0-127
     
-    MyMIDI.addTempo(track, time_cursor, tempo)
+    # Crear el objeto MIDI
+    midi_file = MIDIFile(1) # Un track
+    midi_file.addTempo(track, time, tempo)
     
-    beats_per_measure = 4
-    measures = int((duration_sec / 60) * tempo / beats_per_measure)
+    # 3. Generar la secuencia (4 compases de 4 tiempos)
+    base_note = random.randint(55, 65) # Nota base aleatoria (e.g., C4)
     
-    for _ in range(measures * beats_per_measure):
-        pitch = random.choice(scale)
-        duration = random.choice([0.5, 1, 2])
-        MyMIDI.addNote(track, channel, pitch, time_cursor, duration, volume)
-        time_cursor += duration
+    for _ in range(int(duration / beat_length)):
+        # Toca el acorde (o notas simultáneas)
+        for interval in chord_structure:
+            pitch = base_note + interval
+            midi_file.addNote(track, channel, pitch, time, beat_length, volume)
         
-    # 3. Guardar el archivo MIDI
+        # Avanza el tiempo
+        time += beat_length
+        
+        # Hay una probabilidad de cambiar la nota base para el siguiente acorde
+        if random.random() < 0.3:
+             base_note += random.choice([-2, 0, 2, 4])
+             # Asegurar que no se vaya demasiado lejos
+             base_note = max(50, min(70, base_note)) 
+
+    # 4. Guardar el archivo
+    filename = f"music_{genre.replace(' ', '_')}_{random.randint(1000, 9999)}.mid"
+    filepath = os.path.join(MUSIC_DIR, filename)
+
     try:
-        with open(output_path_mid, "wb") as binfile:
-            MyMIDI.writeFile(binfile)
+        with open(filepath, "wb") as output_file:
+            midi_file.writeFile(output_file)
         
-        # 4. SIMULACIÓN DE LA CONVERSIÓN: Renombramos el archivo MIDI a MP3.
-        # Esto engaña al navegador para que intente reproducirlo, aunque el audio
-        # real sea el del archivo MIDI. Esto es una solución de compromiso.
-        final_path = output_path_mid.replace(".mid", ".mp3")
-        os.rename(output_path_mid, final_path)
+        # Nota importante: No se realiza la conversión a MP3/WAV aquí
+        # porque requiere la librería pydub y la dependencia externa ffmpeg,
+        # lo cual es difícil de configurar en Render. Solo confirmaremos el MIDI.
         
-        # Retorna la ruta accesible desde el frontend
-        return f"/static/music_output/{output_filename_mp3_simulated}"
-    
+        return filename
     except Exception as e:
-        return f"Error al generar archivo musical: {e}"
+        print(f"Error al escribir el archivo MIDI: {e}")
+        return None
