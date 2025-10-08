@@ -9,7 +9,7 @@
 <body>
     <div class="container">
         <h1>Buscador Web Inteligente</h1>
-        <p class="subtitle">Busca en Wikipedia primero, luego en otras fuentes web</p>
+        <p class="subtitle">Busca en Wikipedia con inteligencia</p>
         
         <div class="quick-access-buttons">
             <button id="timeWeatherBtn" class="quick-btn">¿Qué hora es?</button>
@@ -23,7 +23,8 @@
                     placeholder="Escribe o habla tu consulta..." 
                     autocomplete="off"
                 >
-                <button id="voiceBtn" class="voice-btn">🎤 Voz</button> <button id="searchBtn">Buscar</button>
+                <button id="voiceBtn" class="voice-btn">🎤 Voz</button>
+                <button id="searchBtn">Buscar</button>
             </div>
         </div>
         
@@ -39,6 +40,8 @@
         <div id="resultSection" class="result-section hidden">
             <div class="source-badge" id="sourceBadge"></div>
             <h2 id="resultTitle"></h2>
+            <button id="stopSpeakerBtn" class="stop-btn hidden">⏹️ Detener Lectura</button>
+            
             <div id="resultText" class="result-text"></div>
             <a id="resultLink" href="#" target="_blank" class="result-link">Ver fuente completa →</a>
         </div>
