@@ -6,12 +6,13 @@
     <title>PACURE IA - Asistente de Chat</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"> 
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/imagres.ico') }}"> 
 </head>
 <body>
 
     <button class="menu-toggle" id="menuToggle">
-        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="24" height="24">
             <path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
     </button>
@@ -19,6 +20,7 @@
     <div class="sidebar" id="sidebar">
         <div id="historyList">
             </div>
+        
         <div class="sidebar-footer">
             <button class="settings-btn">
                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="20" height="20"><path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM13 19.93V17H11V19.93C7.05 19.44 4 16.08 4 12C4 7.92 7.05 4.56 11 4.07V7H13V4.07C16.95 4.56 20 7.92 20 12C20 16.08 16.95 19.44 13 19.93Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -28,8 +30,13 @@
 
     <div class="main-content-wrapper" id="mainContentWrapper">
         <div class="container">
+            
             <div class="chat-window" id="chatWindow">
                 <h1 class="main-title">Hola usuario</h1>
+            </div>
+            
+            <div class="quick-access-buttons">
+                 <button id="quickQueryBtn" class="quick-query-btn">¿Qué hora es?</button>
             </div>
         </div>
     </div>
@@ -50,7 +57,10 @@
         <p class="search-prompt">Pregúntale a PACUR IA</p>
         
         <div id="imagePreviewContainer" class="image-preview-container hidden">
-            <img id="imagePreview" src="" alt="Vista previa de la imagen">
+            <div class="image-file-info">
+                 <img id="imagePreview" src="" alt="Vista previa de la imagen">
+                 <span id="fileNameDisplay" class="file-name-display">Ningún archivo seleccionado</span>
+            </div>
             <button id="removeImageBtn" class="remove-btn">
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="20" height="20"><path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
@@ -58,8 +68,6 @@
 
         <div class="search-group">
             
-            <button id="quickQueryBtn" class="quick-query-btn">¿Qué hora es?</button>
-
             <button id="toolsBtn" class="tools-btn">
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="24" height="24"><path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
