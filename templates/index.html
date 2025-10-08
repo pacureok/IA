@@ -6,8 +6,7 @@
     <title>PACURE IA - Asistente de Chat</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"> 
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='imang/imagres.ico') }}"> 
-</head>
+    </head>
 <body>
 
     <button class="menu-toggle" id="menuToggle" aria-label="Abrir menú">
@@ -17,7 +16,7 @@
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <span class="app-title">PACURE IA</span>
-            <button class="sidebar-options-btn" id="sidebarOptionsBtn" aria-label="Opciones de historial">
+            <button class="sidebar-options-btn" id="sidebarOptionsBtn" aria-label="Opciones de historial/Cerrar menú">
                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="24" height="24"><path d="M12 10C10.9 10 10 10.9 10 12C10 13.1 10.9 14 12 14C13.1 14 14 13.1 14 12C14 10.9 13.1 10 12 10Z" fill="currentColor"/><path d="M12 4C10.9 4 10 4.9 10 6C10 7.1 10.9 8 12 8C13.1 8 14 7.1 14 6C14 4.9 13.1 4 12 4Z" fill="currentColor"/><path d="M12 16C10.9 16 10 16.9 10 18C10 19.1 10.9 20 12 20C13.1 20 14 19.1 14 18C14 16.9 13.1 16 12 16Z" fill="currentColor"/></svg>
             </button>
         </div>
@@ -27,10 +26,6 @@
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="20" height="20"><path d="M14 10L17 13M14 10L10 14M14 10C14 7.23858 11.7614 5 9 5C6.23858 5 4 7.23858 4 10C4 12.7614 6.23858 15 9 15H10.5M14 10L17 13M14 10L10 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 Nueva conversación
                 <span class="new-chat-icon"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="20" height="20"><path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            </button>
-            <button class="sidebar-option">
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="20" height="20"><path d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 6V18M12 6L15 9M12 6L9 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                Descubrir Gems
             </button>
         </div>
 
@@ -46,26 +41,31 @@
     </div>
 
     <div id="historyOptionsMenu" class="history-options-menu hidden">
-        <button class="menu-option">
+        <button class="menu-option" data-action="share">
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="20" height="20"><path d="M18 13L15 16L12 13M15 16V3M6 13L9 16L12 13M9 16V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 18C3 19.1046 3.89543 20 5 20H19C20.1046 20 21 19.1046 21 18V16H3V18Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             Compartir
         </button>
-        <button class="menu-option">
+        <button class="menu-option" data-action="pin">
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="20" height="20"><path d="M9 16.5V21H15V16.5L13.5 15L12 16.5L10.5 15L9 16.5Z" fill="currentColor"/><path d="M12 2L15.3536 5.35355C15.658 5.65787 15.658 6.14213 15.3536 6.44645L12 9.79998L8.64645 6.44645C8.34214 6.14213 8.34214 5.65787 8.64645 5.35355L12 2Z" fill="currentColor"/><path d="M12 12L12 22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             Fijar
         </button>
-        <button class="menu-option">
+        <button class="menu-option" data-action="rename">
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="20" height="20"><path d="M13.5 6.5L17.5 10.5M4 20H8L18.5 9.5C18.8953 9.10468 19.1171 8.56611 19.1171 7.99479C19.1171 7.42346 18.8953 6.88489 18.5 6.48957L15.5 3.48957C15.1047 3.09425 14.5661 2.87248 13.9948 2.87248C13.4235 2.87248 12.8849 3.09425 12.4896 3.48957L2 14.9896V20Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             Cambiar nombre
         </button>
-        <button class="menu-option delete-option">
+        <button class="menu-option delete-option" data-action="delete">
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="20" height="20"><path d="M10 11V17M14 11V17M4 7H20M19 7L18.333 18.13C18.2257 19.999 17.0729 21 15.187 21H8.81304C6.92706 21 5.7743 19.999 5.667 18.13L5 7H19ZM15 4V4C15 2.89543 14.1046 2 13 2H11C9.89543 2 9 2.89543 9 4V4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             Borrar
         </button>
     </div>
 
-
     <div class="main-content-wrapper" id="mainContentWrapper">
+        <header class="chat-header">
+            <button id="httpsAiBtn" class="https-ai-btn">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="20" height="20"><path d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2ZM15 15L12 12L9 15M12 9V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                HTTPS AI
+            </button>
+        </header>
         <div class="container">
             <div class="chat-window" id="chatWindow">
                 <h1 class="main-title">Hola, <span class="user-name">YouTuber pacure</span></h1>
@@ -76,11 +76,15 @@
     <div id="toolsMenu" class="tools-menu hidden">
         <div class="tool-option" data-tool="canvas">
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="20" height="20"><path d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 6L12 18M6 12L18 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Canvas
+            Canvas (Diseño)
         </div>
         <div class="tool-option" data-tool="excel-word">
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="20" height="20"><path d="M10 4L14 4M10 20L14 20M4 4H8C9.10457 4 10 4.89543 10 6V18C10 19.1046 9.10457 20 8 20H4C2.89543 20 2 19.1046 2 18V6C2 4.89543 2.89543 4 4 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 4H20C21.1046 4 22 4.89543 22 6V18C22 19.1046 21.1046 20 20 20H14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             Excel/Word Project
+        </div>
+        <div class="tool-option" data-tool="music">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="20" height="20"><path d="M9 18V5L21 4V17M9 18C7.34315 18 6 19.3431 6 21C6 22.6569 7.34315 24 9 24C10.6569 24 12 22.6569 12 21C12 19.3431 10.6569 18 9 18ZM21 17C19.3431 17 18 18.3431 18 20C18 21.6569 19.3431 23 21 23C22.6569 23 24 21.6569 24 20C24 18.3431 22.6569 17 21 17Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Music (Generar MP3)
         </div>
         <div class="tool-option" data-tool="upload-single-image">
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="20" height="20"><path d="M3 16V18C3 19.1046 3.89543 20 5 20H19C20.1046 20 21 19.1046 21 18V16M16 8L12 4M12 4L8 8M12 4V16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -95,7 +99,7 @@
                  <img id="imagePreview" src="" alt="Vista previa de la imagen">
                  <span id="fileNameDisplay" class="file-name-display"></span>
             </div>
-            <button id="removeImageBtn" class="remove-btn" aria-label="Eliminar imagen">
+            <button id="removeImageBtn" class="remove-btn" aria-label="Eliminar archivo">
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="20" height="20"><path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
         </div>
