@@ -4,6 +4,7 @@ import requests
 from bs4 import BeautifulSoup
 import wikipedia
 import re
+from wikipedia.exceptions import PageError, DisambiguationError
 
 app = Flask(__name__)
 CORS(app)
@@ -15,6 +16,7 @@ def clean_text(text):
 
 def get_time_info():
     try:
+        # Usa una API de hora más específica, aunque 'ip' es suficiente para hora local aproximada
         response = requests.get('http://worldtimeapi.org/api/ip', timeout=5)
         if response.status_code == 200:
             data = response.json()
@@ -32,6 +34,7 @@ def get_time_info():
                 return f"{day_name}, {date} {time} ({timezone})"
         return None
     except:
+        # Silencia la excepción si falla la API de hora, no es crítica
         return None
 
 def search_wikipedia(query):
@@ -46,21 +49,50 @@ def search_wikipedia(query):
             'text': summary,
             'url': page.url
         }
-    except wikipedia.exceptions.DisambiguationError as e:
+    
+    # 1. MANEJO DE MÚLTIPLES OPCIONES (Desambiguación)
+    except DisambiguationError as e:
         try:
+            # Intenta con la primera opción de la lista de desambiguación
             first_option = e.options[0]
             summary = wikipedia.summary(first_option, sentences=5)
             page = wikipedia.page(first_option)
             return {
                 'success': True,
-                'source': 'Wikipedia',
+                'source': f'Wikipedia (opción: {first_option})',
                 'title': page.title,
                 'text': summary,
                 'url': page.url
             }
         except:
             return {'success': False}
-    except:
+
+    # 2. MANEJO DE PÁGINA NO ENCONTRADA (Búsqueda Inteligente)
+    except PageError:
+        try:
+            # Intenta buscar términos similares
+            suggestions = wikipedia.search(query, results=3)
+            if suggestions:
+                # Si hay sugerencias, intenta con el primer resultado
+                first_suggestion = suggestions[0]
+                summary = wikipedia.summary(first_suggestion, sentences=5)
+                page = wikipedia.page(first_suggestion)
+                return {
+                    'success': True,
+                    'source': f'Wikipedia (sugerencia: {first_suggestion})',
+                    'title': page.title,
+                    'text': summary,
+                    'url': page.url
+                }
+            else:
+                # Si no hay sugerencias, falla para ir al scraping
+                return {'success': False}
+        except:
+            return {'success': False}
+            
+    # 3. OTROS ERRORES (como fallos de conexión)
+    except Exception as e:
+        # print(f"Error desconocido de Wikipedia: {e}") # Para debug
         return {'success': False}
 
 def fallback_scraping(query):
@@ -75,6 +107,7 @@ def fallback_scraping(query):
         
         soup = BeautifulSoup(response.content, 'html.parser')
         
+        # Búsqueda más robusta de un bloque de contenido relevante
         article = soup.find('article') or soup.find('div', class_='ssrcss-1f3bvyz-Stack')
         if article:
             title_elem = article.find(['h1', 'h2', 'h3'])
@@ -124,6 +157,7 @@ def buscar():
     if wiki_result['success']:
         result = wiki_result
     else:
+        # Solo va a scraping si la búsqueda inteligente de Wikipedia también falla
         scrape_result = fallback_scraping(query)
         if scrape_result['success']:
             result = scrape_result
@@ -136,4 +170,5 @@ def buscar():
     return jsonify(result), 200
 
 if __name__ == '__main__':
+    # Usamos gunicorn en producción, pero esto es bueno para pruebas locales
     app.run(host='0.0.0.0', port=5000, debug=False)
