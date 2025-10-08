@@ -1,122 +1,95 @@
-import os
-import io
-import base64
+# app.py
 from flask import Flask, render_template, request, jsonify
-from PIL import Image, ImageStat
+import re
+from math_ia import evaluate_expression
 
-# CONFIGURACIÓN
-app = Flask(__name__, static_folder='static', template_folder='templates')
+app = Flask(__name__)
+# Configuración para que el navegador no cachee los archivos estáticos durante el desarrollo
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0 
 
-# --- LÓGICA DE SIMULACIÓN DE IA (USANDO PILLOW) ---
-def analyze_image_pillow(base64_string, query):
-    """
-    Simula el análisis de una imagen usando la librería Pillow.
-    No es un modelo de IA real, pero demuestra el procesamiento en Python.
-    """
-    try:
-        # Decodificar Base64
-        header, encoded = base64_string.split(',')
-        data = base64.b64decode(encoded)
-        image = Image.open(io.BytesIO(data))
-        
-        # 1. Obtener datos básicos
-        width, height = image.size
-        mode = image.mode
-        
-        # 2. Análisis de color (promedio)
-        if mode == 'RGB':
-            stat = ImageStat.Stat(image)
-            avg_color = [int(c) for c in stat.mean]
-            dominant_feature = ""
-
-            # Lógica simple para detectar colores dominantes
-            if avg_color[0] > 180 and avg_color[1] < 100 and avg_color[2] < 100:
-                dominant_feature = "Rojo (posible atardecer, fuego o tierra)."
-            elif avg_color[1] > 180 and avg_color[0] < 100 and avg_color[2] < 100:
-                dominant_feature = "Verde (posible vegetación, bosque)."
-            elif avg_color[2] > 180 and avg_color[0] < 100 and avg_color[1] < 100:
-                dominant_feature = "Azul (posible cielo, agua o escena oscura)."
-            else:
-                dominant_feature = "Color dominante mixto o neutro."
-        else:
-            dominant_feature = "Imagen en escala de grises o formato no RGB."
-
-
-        analysis_result = {
-            "title": "Análisis Simple de Imagen (PACURE IA)",
-            "text": f"He procesado la imagen de {width}x{height} píxeles. "
-                    f"El color promedio de la imagen es RGB({avg_color[0]}, {avg_color[1]}, {avg_color[2]}). "
-                    f"**Interpretación:** Detecto un fuerte componente {dominant_feature} "
-                    f"Tu consulta: '{query}' fue procesada, pero el análisis se basó en el color y tamaño. "
-                    f"Para una comprensión real, necesitaría un modelo de IA más avanzado.",
-            "url": "#", # No hay fuente web para el análisis
-            "source": "PACURE Vision"
-        }
-        return analysis_result
-
-    except Exception as e:
-        print(f"Error al analizar la imagen: {e}")
-        return {
-            "title": "Error de Procesamiento de Imagen",
-            "text": "Lo siento, hubo un error al decodificar o procesar la imagen.",
-            "url": "#",
-            "source": "Error"
-        }
-
-# --- RUTAS DE FLASK ---
+# ============================================================
+# 1. Rutas de la Aplicación
+# ============================================================
 
 @app.route('/')
 def index():
+    """Ruta principal que sirve la interfaz de chat."""
     return render_template('index.html')
 
-@app.route('/buscar', methods=['POST'])
-def buscar():
+@app.route('/api/chat', methods=['POST'])
+def chat_api():
+    """Endpoint para procesar la consulta del usuario y generar la respuesta de la IA."""
     data = request.json
-    query = data.get('query', '')
-    image_base64 = data.get('image', None)
-    
-    # 1. SI HAY IMAGEN, HACER ANÁLISIS
-    if image_base64:
-        result = analyze_image_pillow(image_base64, query)
-        
-        # Dado que no estamos haciendo una búsqueda real, simulamos fuentes
-        # para que la interfaz se vea bien (usamos el mismo código JS)
-        if result['source'] == 'PACURE Vision':
-             sources = [{ 'name': result['source'], 'url': '#' }]
-        else:
-             sources = []
-             
-        return jsonify({
-            "title": result['title'],
-            "text": result['text'],
-            "url": result['url'],
-            "source": result['source'],
-            "external_sources": sources 
-        })
-        
-    # 2. SI NO HAY IMAGEN, HACER BÚSQUEDA NORMAL (Simulación)
-    else:
-        # Simulación de respuesta de búsqueda (como tu script.js anterior)
-        # En un sistema real, aquí llamarías a una API o a tu lógica de búsqueda
-        if "pacure ia" in query.lower() or "que hace" in query.lower():
-            # El script.js maneja las respuestas personalizadas en el cliente
-            return jsonify({"error": "Respuesta personalizada manejada en el cliente.", "code": 400}) 
+    user_query = data.get('query', '')
+    # files_attached = data.get('files', [])  # Si el JS enviara la info de los archivos
 
-        # Respuesta simulada de Wikipedia para demostrar la barra de fuentes
-        simulated_response = {
-            "title": "Río Pacuare y Rafting",
-            "text": "El Río Pacuare, ubicado en Costa Rica, es famoso mundialmente por sus emocionantes rápidos de clase III y IV, que lo hacen ideal para el rafting. Es un río prístino que atraviesa una densa selva tropical.",
-            "url": "https://es.wikipedia.org/wiki/R%C3%ADo_Pacuare",
-            "source": "Wikipedia",
-            "external_sources": [
-                { "name": "Wikipedia (Río Pacuare)", "url": "https://es.wikipedia.org/wiki/R%C3%ADo_Pacuare" },
-                { "name": "National Geographic - Aventuras", "url": "https://www.nationalgeographic.com/aventura-pacuare" },
-                { "name": "Pacuare Lodge Oficial", "url": "https://www.pacuarelodge.com/" }
-            ]
-        }
-        return jsonify(simulated_response)
+    # 1. Procesamiento de la consulta
+    response_text, tool_used, image_topic, sources = process_query_with_ia(user_query)
+    
+    # 2. Construcción de la respuesta JSON
+    response = {
+        'text': response_text,
+        'toolUsed': tool_used,
+        'imageTopic': image_topic,
+        'sources': sources
+    }
+    
+    return jsonify(response)
+
+# ============================================================
+# 2. Lógica del Procesamiento de la IA
+# ============================================================
+
+def process_query_with_ia(query: str):
+    """
+    Analiza la consulta y genera la respuesta utilizando comprensión de lenguaje
+    y delegando a módulos especializados.
+    """
+    query_lower = query.lower()
+    tool_used = None
+    image_topic = "información general"
+    sources = ["pacureia.dev", "google.com"]
+
+    # --- Delegación a Matemáticas ---
+    math_match = re.search(r'calcula|resuelve|operación|matemática|cuánto es', query_lower)
+    if math_match:
+        # Intenta extraer una expresión matemática simple (ej: "5+3", "sqrt(16)")
+        expression_match = re.search(r'(\d[\d\+\-\*/\^\s\.\(\)a-z]+)', query_lower)
+        
+        if expression_match:
+            expression = expression_match.group(1).strip()
+            result = evaluate_expression(expression)
+            
+            if "Error" in str(result):
+                response_text = f"Intenté resolver la expresión '{expression}', pero encontré un error: {result} 😔."
+            else:
+                response_text = f"Según el módulo de matemáticas (`math_ia.py`), la operación **{expression}** es igual a **{result}**. 📐"
+                image_topic = "fórmulas matemáticas"
+            return response_text, 'math', image_topic, sources + ["modulo-matematicas.ai"]
+
+    # --- Detección de Herramientas de Productividad ---
+    if "excel" in query_lower or "tabla" in query_lower:
+        tool_used = 'excel-word'
+        response_text = "Comprendido. Voy a preparar una estructura de tabla o una hoja de cálculo para tu proyecto de Excel/Word. ¿Qué columnas necesitas? 📊"
+        image_topic = "hoja de cálculo"
+    elif "apunte" in query_lower or "word" in query_lower or "resumen" in query_lower:
+        tool_used = 'excel-word'
+        response_text = "¡Excelente! Estoy generando un apunte formateado estilo Word sobre el tema que pediste. Dame un momento. 📝"
+        image_topic = "escritura y documentos"
+    
+    # --- Procesamiento General de Lenguaje ---
+    else:
+        # Aquí iría la lógica compleja de tu modelo de IA (emocional, comprensivo, etc.)
+        response_text = f"Analicé y comprendí tu consulta: '{query}'. Como un modelo capaz de generar texto y entender emociones, te doy esta respuesta completa. Si necesitas algo más, no dudes en preguntar. ✨😊"
+        image_topic = query_lower # Usa la consulta como tema de la imagen
+
+    return response_text, tool_used, image_topic, sources
+
+# ============================================================
+# 3. Inicialización
+# ============================================================
 
 if __name__ == '__main__':
-    # Usar un puerto dinámico en un entorno de producción (como Heroku)
-    port = int(os.environ.get('PORT', 5000))
-    app.run(debug=True, host='0.0.0.0', port=port)
+    # Usar debug=True solo en entorno de desarrollo
+    # app.run(debug=True)
+    pass # Dejar pass si la ejecución se hará desde un servidor WSGI (como gunicorn) o un entorno de Flask preconfigurado
