@@ -2,10 +2,10 @@ from flask import Flask, render_template, request, jsonify, url_for, send_from_d
 from flask_cors import CORS
 import wikipedia
 import random
-import re
+import re 
 import os
 from youtube_analyzer import analyze_youtube_link
-from music_creator import generate_music_sequence, MUSIC_DIR # Importamos las nuevas funciones y directorios
+from music_creator import generate_music_sequence, MUSIC_DIR 
 
 # --- CONFIGURACIÓN DE WIKIPEDIA Y FLASK ---
 wikipedia.set_lang("es")
@@ -30,7 +30,6 @@ def handle_greetings(query):
 def handle_music_creation(query, state):
     """
     Maneja la lógica de creación de música en dos etapas: pregunta y creación.
-    'state' se usaría para mantener la conversación, pero por ahora solo se usa la query.
     """
     create_keywords = ["crea musica", "haz musica", "generar cancion", "compose una"]
     
@@ -42,25 +41,20 @@ def handle_music_creation(query, state):
             "imageTopic": "musica"
         }, True
 
-    # Esta es una simulación de la segunda etapa. 
-    # En una aplicación real, se usaría un contexto de sesión.
     genre_keywords = ["jazz", "rock", "pop", "electrónica", "ambiente", "techno", "blues"]
     
-    # Si la consulta contiene una palabra clave de género (después de una petición inicial, aunque es heurístico)
+    # Si la consulta contiene una palabra clave de género
     if any(g in query.lower() for g in genre_keywords):
         
-        # Extraer el género del texto de la consulta
         genre = next((g for g in genre_keywords if g in query.lower()), "ambiente")
         
-        # Llamar a la función de generación
         filename = generate_music_sequence(genre)
         
         if filename:
-            # Respuesta con el archivo simulado
             file_url = url_for('get_music_file', filename=filename, _external=True)
             
             return {
-                "text": f"**[MÚSICA GENERADA CON ÉXITO]**\n\n¡Listo! He compuesto una pieza corta de **género {genre.upper()}** para ti.\n\nHe guardado el archivo en el servidor como `{filename}`. En un sistema real, podrías reproducirlo directamente. (Técnicamente, se generó un archivo MIDI).\n\n**¡Disfruta la creación de PACURE IA!**",
+                "text": f"**[MÚSICA GENERADA CON ÉXITO]**\n\n¡Listo! He compuesto una pieza corta de **género {genre.upper()}** para ti. El archivo es un formato **MIDI** puro, que es seguro y no necesita software adicional en el servidor.\n\nHe guardado el archivo en el servidor como `{filename}`.\n\n**¡Disfruta la creación de PACURE IA!**",
                 "sources": [file_url],
                 "imageTopic": genre
             }, True
@@ -80,7 +74,6 @@ def handle_conversational_query(query):
     """
     query_lower = query.lower()
     
-    # Patrones para preguntas filosóficas, de opinión o auto-referenciales.
     if "que opinas de" in query_lower or "el significado de la vida" in query_lower or "el futuro de" in query_lower:
         return {
             "text": f"Esa es una pregunta fascinante que requiere un profundo **sentido lógico y análisis**.\n\nDesde mi perspectiva como PACURE IA, {query}... es un tema que evoluciona rápidamente. Mis sistemas de lógica me dicen que cualquier análisis debe considerar la ética, la tecnología y el impacto humano. En resumen, **es una incógnita con un potencial inmenso.**",
@@ -95,22 +88,15 @@ def handle_conversational_query(query):
             "imageTopic": "ia"
         }
     
-    return None # No es una consulta conversacional, pasar a la búsqueda.
-
+    return None 
 
 # ============================================================
-# FUNCIONES DE PROCESAMIENTO YA EXISTENTES (SE MANTIENEN)
+# FUNCIONES DE PROCESAMIENTO YA EXISTENTES (Se mantienen)
 # ============================================================
-
-# (responder_creador y buscar_en_wikipedia se mantienen igual que en la versión anterior)
 
 def responder_creador(query):
-    """
-    Función que maneja variantes de preguntas sobre el creador.
-    """
     creador_keywords = ["quien te creo", "quién te hizo", "tu creador", "de pacure"]
     
-    # Verifica si la consulta contiene alguna de las palabras clave
     if any(keyword in query.lower() for keyword in creador_keywords):
         return (
             "Mi creador es **PACURE OK**. Soy parte de **PACURE WORKPLACE**.\n\n"
@@ -120,10 +106,6 @@ def responder_creador(query):
     return None, False
 
 def buscar_en_wikipedia(query):
-    """
-    Busca en Wikipedia en español, maneja errores de desambiguación 
-    y obtiene el resumen y el URL. (Lógica omitida por brevedad, se mantiene la original)
-    """
     try:
         results = wikipedia.search(query, results=5)
         if not results:
@@ -147,13 +129,8 @@ def buscar_en_wikipedia(query):
         return None, None
 
 def simular_web_scraping(query):
-    """
-    Simula la búsqueda y análisis de 9 páginas adicionales para complementar Wikipedia.
-    (Lógica omitida por brevedad, se mantiene la original)
-    """
     fuentes = []
     
-    # Lista de 9 fuentes simuladas que "contienen" información.
     simulated_sites = [
         f"foro-{query[:5]}.com", f"blog-analisis.net", f"revista-tech.io", 
         f"data-pacure.org", f"web-{random.randint(100, 999)}.net",
@@ -164,7 +141,6 @@ def simular_web_scraping(query):
     for site in simulated_sites:
         fuentes.append(site)
 
-    # Simula un resumen simple del análisis
     resumen_analisis = f"El análisis de **{len(simulated_sites)} fuentes web** complementarias indica un fuerte consenso sobre la relevancia de '{query}'. La información obtenida ha sido filtrada para eliminar duplicados y asegurar la calidad del dato."
     
     return resumen_analisis, fuentes
@@ -177,6 +153,7 @@ def simular_web_scraping(query):
 @app.route('/')
 def index():
     """Ruta principal para cargar el frontend."""
+    # Nota: Render asume que tienes un archivo 'index.html' en la carpeta 'templates'
     return render_template('index.html')
 
 @app.route('/generated_music/<filename>')
@@ -189,7 +166,6 @@ def get_music_file(filename):
 def process_query():
     """Ruta API para procesar la consulta del usuario."""
     query = request.form.get('query', '').strip()
-    # state = request.form.get('state', {}) # Para manejo de estado de conversación (simulado)
 
     if not query:
         return jsonify({
@@ -198,7 +174,7 @@ def process_query():
             "imageTopic": "error"
         }), 400
 
-    # 1. VERIFICACIÓN DE SALUDO (PRIORIDAD MÁXIMA)
+    # 1. VERIFICACIÓN DE SALUDO 
     greeting_response = handle_greetings(query)
     if greeting_response:
         return jsonify(greeting_response)
@@ -212,7 +188,7 @@ def process_query():
             "imageTopic": "creador"
         })
 
-    # 3. MANEJO DE CREACIÓN MUSICAL (Prioridad alta para la interacción de dos pasos)
+    # 3. MANEJO DE CREACIÓN MUSICAL 
     music_response, handled = handle_music_creation(query, {})
     if handled:
         return jsonify(music_response)
@@ -222,7 +198,6 @@ def process_query():
     match = re.search(youtube_pattern, query)
 
     if match:
-        # Lógica de análisis de YouTube (se mantiene igual)
         video_id = match.group(1)
         video_url = f"https://www.youtube.com/watch?v={video_id}"
         analysis_result = analyze_youtube_link(video_url)
@@ -244,7 +219,7 @@ def process_query():
             })
 
 
-    # 5. RESPUESTAS CONVERSACIONALES / LÓGICAS (Imitando a ChatGPT/Gemini)
+    # 5. RESPUESTAS CONVERSACIONALES / LÓGICAS 
     conversational_response = handle_conversational_query(query)
     if conversational_response:
         return jsonify(conversational_response)
@@ -278,7 +253,6 @@ def process_query():
             "imageTopic": query 
         })
     else:
-        # ESCENARIO: NO SE ENCONTRÓ NADA (Respuesta estricta y estructurada)
         final_text = (
             "**[PACURE IA - BÚSQUEDA Y ANÁLISIS FALLIDO]**\n\n"
             f"Lo siento, PACURE IA no ha encontrado ninguna página de Wikipedia o fuente web relevante y estructurada sobre **'{query}'**.\n"
@@ -297,4 +271,6 @@ def process_query():
 # ============================================================
 
 if __name__ == '__main__':
+    # Nota: Gunicorn usa 'app:app' como punto de entrada, 
+    # por lo que esto solo se ejecuta en entorno local de pruebas.
     app.run(debug=True, port=5000)
