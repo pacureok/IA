@@ -4,9 +4,10 @@ import wikipedia
 import random
 import re 
 import os
-from youtube_analyzer import analyze_youtube_link
-# CORREGIDO: Importa la música desde el archivo music_ia.py
-from music_ia import generate_music_sequence, MUSIC_DIR 
+# Asegúrate de que 'youtube_analyzer.py' existe y está junto a este archivo
+from youtube_analyzer import analyze_youtube_link 
+# CORREGIDO: Importa la función de generación y la lista de géneros para el manejo de errores
+from music_ia import generate_music_sequence, MUSIC_DIR, GENRE_MAPPING as music_ia 
 
 # --- CONFIGURACIÓN DE WIKIPEDIA Y FLASK ---
 wikipedia.set_lang("es")
@@ -30,41 +31,46 @@ def handle_greetings(query):
 
 def handle_music_creation(query, state):
     """
-    Maneja la lógica de creación de música usando la nueva sintaxis:
+    Maneja la lógica de creación de música usando la sintaxis:
     "Quiero musica del genero [genero]"
     """
     
-    # Expresión regular para buscar el patrón exacto
     pattern = r"quiero musica del genero\s+(.+)"
     match = re.search(pattern, query.lower())
     
-    # 1. Escenario: El usuario ha usado el comando correcto (Paso 2)
+    # 1. Escenario: El usuario ha usado el comando correcto
     if match:
         genre = match.group(1).strip()
         
+        # Intentamos generar la música
         filename = generate_music_sequence(genre)
         
-        # Respuesta después de la creación
-        if filename:
-            file_url = url_for('get_music_file', filename=filename, _external=True)
-            
+        # RESPUESTA 1A: Género NO RECONOCIDO por music_ia.py
+        if filename is None:
+            # Crea una lista de géneros soportados para el mensaje de error
+            supported_genres = ", ".join([g.title() for g in music_ia.keys()]) 
             return {
-                "text": f"**[MÚSICA GENERADA CON ÉXITO]**\n\n¡Listo! He compuesto una pieza de **género {genre.upper()}** de 1 minuto usando una orquesta virtual de 4 pistas para ti.\n\nHe guardado el archivo en el servidor como `{filename}`.\n\n**¡Disfruta la creación única de PACURE IA!**",
-                "sources": [file_url],
-                "imageTopic": genre
-            }, True
-        else:
-            return {
-                "text": "**[ERROR CREACIÓN]** Lo siento, hubo un fallo al generar el archivo MIDI en el servidor.",
-                "sources": ["pacureia.dev/music_error"],
-                "imageTopic": "error"
+                "text": f"**[GÉNERO NO SOPORTADO]** Lo siento, PACURE IA solo genera música de géneros que conoce a fondo.\n\n"
+                        f"**El género '{genre.upper()}' no está en nuestra lista de géneros especializados.**\n\n"
+                        f"Por favor, intenta con uno de los géneros soportados: **{supported_genres}**.",
+                "sources": ["pacureia.dev/genre_limit"],
+                "imageTopic": "musica_error"
             }, True
 
-    # 2. Escenario: El usuario inicia la creación (Paso 1) o usa el comando incorrecto
+        # RESPUESTA 1B: Generación exitosa
+        file_url = url_for('get_music_file', filename=filename, _external=True)
+        
+        return {
+            "text": f"**[MÚSICA GENERADA CON ÉXITO]**\n\n¡Listo! He compuesto una pieza de **género {genre.upper()}** de 1 minuto con una paleta de instrumentos limitada a ese estilo. ¡La calidad es superior!\n\nHe guardado el archivo en el servidor como `{filename}`.\n\n**¡Disfruta la creación específica de PACURE IA!**",
+            "sources": [file_url],
+            "imageTopic": genre
+        }, True
+
+    # 2. Escenario: El usuario inicia la creación o usa el comando incorrecto
     create_keywords = ["crea musica", "haz musica", "generar cancion", "compose una", "musica"]
     if any(keyword in query.lower() for keyword in create_keywords):
         return {
-            "text": "**[MODO CREACIÓN MUSICAL - SINTAXIS REQUERIDA]**\n\n¡Absolutamente! Soy el encargado de la música.\n\nPara generar la pieza, usa la siguiente sintaxis obligatoria:\n\n**`Quiero musica del genero [el género que quieras]`**\n\n*(Ej: Quiero musica del genero Rock Gotico, Quiero musica del genero Cumbia, Quiero musica del genero Jazz Fusión)*",
+            "text": "**[MODO CREACIÓN MUSICAL - SINTAXIS REQUERIDA]**\n\n¡Absolutamente! Para generar la pieza, usa la siguiente sintaxis obligatoria:\n\n**`Quiero musica del genero [el género que quieras]`**\n\n*(Ej: Quiero musica del genero Rock Gotico, Quiero musica del genero Jazz)*",
             "sources": ["pacureia.dev/music_init"],
             "imageTopic": "musica"
         }, True
@@ -107,19 +113,15 @@ def responder_creador(query):
 def buscar_en_wikipedia(query):
     try:
         results = wikipedia.search(query, results=5)
-        if not results:
-            return None, None
+        if not results: return None, None
         
         for page_title in results:
             try:
                 page = wikipedia.page(page_title, auto_suggest=False, redirect=True)
                 summary = wikipedia.summary(page_title, sentences=3, auto_suggest=False, redirect=True)
                 return summary, page.url
-            
-            except wikipedia.exceptions.DisambiguationError:
-                continue 
-            except wikipedia.exceptions.PageError:
-                continue 
+            except wikipedia.exceptions.DisambiguationError: continue 
+            except wikipedia.exceptions.PageError: continue 
             
         return None, None
             
@@ -129,7 +131,6 @@ def buscar_en_wikipedia(query):
 
 def simular_web_scraping(query):
     fuentes = []
-    
     simulated_sites = [
         f"foro-{query[:5]}.com", f"blog-analisis.net", f"revista-tech.io", 
         f"data-pacure.org", f"web-{random.randint(100, 999)}.net",
@@ -137,8 +138,7 @@ def simular_web_scraping(query):
         f"conocimiento-libre.net", f"investigacion-profunda.net"
     ]
     
-    for site in simulated_sites:
-        fuentes.append(site)
+    for site in simulated_sites: fuentes.append(site)
 
     resumen_analisis = f"El análisis de **{len(simulated_sites)} fuentes web** complementarias indica un fuerte consenso sobre la relevancia de '{query}'. La información obtenida ha sido filtrada para eliminar duplicados y asegurar la calidad del dato."
     
@@ -157,7 +157,7 @@ def index():
 @app.route('/generated_music/<filename>')
 def get_music_file(filename):
     """Ruta para servir el archivo de música generado."""
-    return send_from_directory(MUSIC_DIR, filename)
+    return send_from_directory(music_ia.MUSIC_DIR, filename)
 
 
 @app.route('/api/chat', methods=['POST'])
@@ -174,8 +174,7 @@ def process_query():
 
     # 1. VERIFICACIÓN DE SALUDO 
     greeting_response = handle_greetings(query)
-    if greeting_response:
-        return jsonify(greeting_response)
+    if greeting_response: return jsonify(greeting_response)
 
     # 2. VERIFICACIÓN DE CREADOR
     creator_response, handled = responder_creador(query)
@@ -186,10 +185,9 @@ def process_query():
             "imageTopic": "creador"
         })
 
-    # 3. MANEJO DE CREACIÓN MUSICAL (Nueva sintaxis obligatoria)
+    # 3. MANEJO DE CREACIÓN MUSICAL (Prioridad alta con sintaxis obligatoria)
     music_response, handled = handle_music_creation(query, {})
-    if handled:
-        return jsonify(music_response)
+    if handled: return jsonify(music_response)
 
     # 4. MANEJO DE ENLACES DE YOUTUBE
     youtube_pattern = r'(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})'
@@ -219,8 +217,7 @@ def process_query():
 
     # 5. RESPUESTAS CONVERSACIONALES / LÓGICAS 
     conversational_response = handle_conversational_query(query)
-    if conversational_response:
-        return jsonify(conversational_response)
+    if conversational_response: return jsonify(conversational_response)
 
     # 6. BÚSQUEDA GENERAL (Wikipedia + Web Scraping Simulado)
     
@@ -231,8 +228,7 @@ def process_query():
     final_sources = []
 
     if wiki_summary:
-        if wiki_url:
-            final_sources.append(wiki_url)
+        if wiki_url: final_sources.append(wiki_url)
         final_sources.extend(web_sources)
         
         final_text = (
@@ -255,7 +251,7 @@ def process_query():
             "**[PACURE IA - BÚSQUEDA Y ANÁLISIS FALLIDO]**\n\n"
             f"Lo siento, PACURE IA no ha encontrado ninguna página de Wikipedia o fuente web relevante y estructurada sobre **'{query}'**.\n"
             "Esto pudo ocurrir porque la consulta es ambigua o no está en nuestra base de datos.\n\n"
-            "**Sugerencia (Como Gemini/ChatGPT):** Intenta con una pregunta que requiera un análisis lógico o creativo (ej. 'Dime la importancia de la IA')."
+            "**Sugerencia:** Intenta con una pregunta que requiera un análisis lógico o creativo (ej. 'Dime la importancia de la IA')."
         )
         
         return jsonify({
