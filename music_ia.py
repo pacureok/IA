@@ -1,30 +1,39 @@
-# music_ia.py - Generación de música con 128 instrumentos y 4 tracks
+# music_ia.py - Generación de música con LÓGICA DE GÉNERO ESTRICTA
 
 from midiutil import MIDIFile
 import random
 import os
 
-# --- Mapeo de Instrumentos General MIDI (GM) ---
-# Usamos el estándar completo de 128 instrumentos (ID 0 a 127)
+# --- Mapeo de Instrumentos General MIDI (GM) por Nombre y ID (0-127) ---
 GM_INSTRUMENTS = {
-    "Piano": 0, "Bright Piano": 1, "Electric Piano": 4, 
-    "Guitar": 26, "Overdriven Guitar": 30, "Acoustic Bass": 32, "Electric Bass": 34,
-    "Strings": 40, "Violin": 41, "Cello": 43, "Synth Strings": 50,
+    # Pianos y Teclados
+    "Acoustic Piano": 0, "Bright Piano": 1, "Electric Grand": 2, "Electric Piano": 4, 
+    # Guitarras y Bajos
+    "Acoustic Bass": 32, "Electric Bass": 34, "Overdriven Guitar": 30, "Distortion Guitar": 31,
+    # Cuerdas y Orquestales
+    "Strings Ensemble": 48, "Synth Strings": 50, "Cello": 43, "Violin": 41,
+    # Metales y Viento
     "Trumpet": 56, "Trombone": 57, "Sax": 65, "Flute": 73,
-    "Synth Lead": 80, "Sawtooth": 81, "Pad Choir": 89,
-    "Drum Kit": 118, "Percussion": 119, "Accordion": 21 # Ejemplo de instrumento no cubierto antes
+    # Sintetizadores y Pads
+    "Synth Lead": 80, "Sawtooth": 81, "Pad Choir": 89, "Pad Warm": 88,
+    # Otros
+    "Accordion": 21, "Timpani": 47,
+    # Percusión (Usaremos IDs para kits, pero el canal 9 manda)
+    "Standard Kit": 0, "Jazz Kit": 1, "Brush Kit": 8, 
 }
 
-# --- Mapeo de Géneros a Sets de Instrumentos y Tempo ---
-# Esta es la base. Si un género no está aquí, usará la lógica ALEATORIA de 128 instrumentos.
+# --- Mapeo de Géneros a Parámetros y 4 Instrumentos ESPECÍFICOS ---
+# Si un género no está aquí, NO SE GENERARÁ música.
 GENRE_MAPPING = {
-    "rock": {"tempo": 120, "chords": [0, 4, 7], "lead": GM_INSTRUMENTS["Overdriven Guitar"], "harmony": GM_INSTRUMENTS["Guitar"], "bass": GM_INSTRUMENTS["Electric Bass"], "drums": GM_INSTRUMENTS["Drum Kit"]},
-    "pop": {"tempo": 100, "chords": [0, 4, 7, 10], "lead": GM_INSTRUMENTS["Bright Piano"], "harmony": GM_INSTRUMENTS["Synth Strings"], "bass": GM_INSTRUMENTS["Electric Bass"], "drums": GM_INSTRUMENTS["Drum Kit"]},
-    "jazz": {"tempo": 95, "chords": [0, 3, 7, 10], "lead": GM_INSTRUMENTS["Sax"], "harmony": GM_INSTRUMENTS["Electric Piano"], "bass": GM_INSTRUMENTS["Acoustic Bass"], "drums": GM_INSTRUMENTS["Percussion"]},
-    "electronica": {"tempo": 130, "chords": [0, 7, 12], "lead": GM_INSTRUMENTS["Synth Lead"], "harmony": GM_INSTRUMENTS["Sawtooth"], "bass": GM_INSTRUMENTS["Synth Lead"], "drums": GM_INSTRUMENTS["Drum Kit"]},
-    "ambiente": {"tempo": 60, "chords": [0, 7, 12], "lead": GM_INSTRUMENTS["Pad Choir"], "harmony": GM_INSTRUMENTS["Strings"], "bass": GM_INSTRUMENTS["Cello"], "drums": GM_INSTRUMENTS["Percussion"]},
-    "clasica": {"tempo": 75, "chords": [0, 4, 7], "lead": GM_INSTRUMENTS["Violin"], "harmony": GM_INSTRUMENTS["Strings"], "bass": GM_INSTRUMENTS["Cello"], "drums": GM_INSTRUMENTS["Percussion"]},
-    "cumbia": {"tempo": 90, "chords": [0, 4, 7], "lead": GM_INSTRUMENTS["Accordion"], "harmony": GM_INSTRUMENTS["Trumpet"], "bass": GM_INSTRUMENTS["Acoustic Bass"], "drums": GM_INSTRUMENTS["Percussion"]},
+    "rock": {"tempo": 110, "chords": [0, 4, 7], "lead": GM_INSTRUMENTS["Overdriven Guitar"], "harmony": GM_INSTRUMENTS["Electric Piano"], "bass": GM_INSTRUMENTS["Electric Bass"], "drums": GM_INSTRUMENTS["Standard Kit"]},
+    "rock gotico": {"tempo": 90, "chords": [0, 3, 7], "lead": GM_INSTRUMENTS["Distortion Guitar"], "harmony": GM_INSTRUMENTS["Strings Ensemble"], "bass": GM_INSTRUMENTS["Electric Bass"], "drums": GM_INSTRUMENTS["Standard Kit"]},
+    "rock metal": {"tempo": 180, "chords": [0, 7], "lead": GM_INSTRUMENTS["Distortion Guitar"], "harmony": GM_INSTRUMENTS["Overdriven Guitar"], "bass": GM_INSTRUMENTS["Electric Bass"], "drums": GM_INSTRUMENTS["Standard Kit"]},
+    "pop": {"tempo": 100, "chords": [0, 4, 7, 10], "lead": GM_INSTRUMENTS["Bright Piano"], "harmony": GM_INSTRUMENTS["Synth Strings"], "bass": GM_INSTRUMENTS["Electric Bass"], "drums": GM_INSTRUMENTS["Standard Kit"]},
+    "jazz": {"tempo": 95, "chords": [0, 3, 7, 10], "lead": GM_INSTRUMENTS["Sax"], "harmony": GM_INSTRUMENTS["Electric Piano"], "bass": GM_INSTRUMENTS["Acoustic Bass"], "drums": GM_INSTRUMENTS["Jazz Kit"]},
+    "electronica": {"tempo": 130, "chords": [0, 7, 12], "lead": GM_INSTRUMENTS["Synth Lead"], "harmony": GM_INSTRUMENTS["Sawtooth"], "bass": GM_INSTRUMENTS["Synth Lead"], "drums": GM_INSTRUMENTS["Standard Kit"]},
+    "hip hop": {"tempo": 85, "chords": [0, 3, 7], "lead": GM_INSTRUMENTS["Synth Lead"], "harmony": GM_INSTRUMENTS["Pad Warm"], "bass": GM_INSTRUMENTS["Electric Bass"], "drums": GM_INSTRUMENTS["Standard Kit"]},
+    "ambiente": {"tempo": 60, "chords": [0, 7, 12], "lead": GM_INSTRUMENTS["Pad Choir"], "harmony": GM_INSTRUMENTS["Strings Ensemble"], "bass": GM_INSTRUMENTS["Cello"], "drums": GM_INSTRUMENTS["Percussion"]},
+    "clasica": {"tempo": 75, "chords": [0, 4, 7], "lead": GM_INSTRUMENTS["Violin"], "harmony": GM_INSTRUMENTS["Strings Ensemble"], "bass": GM_INSTRUMENTS["Cello"], "drums": GM_INSTRUMENTS["Timpani"]},
 }
 
 # Directorio donde se guardarán los archivos temporales de música
@@ -36,40 +45,44 @@ os.makedirs(MUSIC_DIR, exist_ok=True)
 def get_genre_parameters(genre):
     """
     Obtiene parámetros detallados. Si el género no se encuentra, 
-    selecciona instrumentos ALEATORIOS de los 128 disponibles.
-    Esto permite simular MÁS de 100 géneros con combinaciones únicas.
+    devuelve None para forzar el mensaje de "no reconocido".
     """
     genre_lower = genre.lower()
     
+    # Intenta obtener el mapeo
     params = GENRE_MAPPING.get(genre_lower)
     
     if not params:
-        # Lógica de "todos los generos": Asigna 4 instrumentos aleatorios de los 128
-        print(f"Género '{genre}' no encontrado. Usando 4 instrumentos aleatorios de los 128.")
-        
-        # Rango de 0 a 127 para seleccionar cualquier instrumento MIDI
-        random_instruments = random.sample(range(128), 4) 
-        
-        params = {
-            "tempo": random.randint(70, 140),
-            "chords": random.choice([[0, 4, 7], [0, 3, 7], [0, 7, 12]]),
-            "lead": random_instruments[0],
-            "harmony": random_instruments[1],
-            "bass": random_instruments[2],
-            "drums": random_instruments[3] 
-        }
+        # **CAMBIO CLAVE:** Devuelve None si el género no está en la lista.
+        return None 
     
-    return params["tempo"], params["chords"], params["lead"], params["harmony"], params["bass"], params["drums"]
+    # Asignamos el ID del instrumento de percusión para el Canal 9
+    drums_program = params["drums"] 
 
+    # Para los otros tracks, usamos el ID del instrumento
+    return (
+        params["tempo"], 
+        params["chords"], 
+        params["lead"], 
+        params["harmony"], 
+        params["bass"], 
+        drums_program # ID del kit de percusión (Aunque el canal 9 es el que define el sonido)
+    )
 
 # ----------------- Función Principal de Generación -----------------
 
 def generate_music_sequence(genre="ambiente"):
     """
-    Genera una secuencia MIDI compleja de ~60 segundos usando 4 tracks e instrumentos únicos.
+    Genera una secuencia MIDI de ~60 segundos con instrumentos limitados al género.
     """
     
-    tempo, chord_structure, LEAD_INST, HARMONY_INST, BASS_INST, DRUM_INST = get_genre_parameters(genre)
+    # 1. Definir parámetros. Si es None, salimos.
+    params = get_genre_parameters(genre)
+    if not params:
+        # Devuelve None para que app.py pueda manejar el error de "género no soportado"
+        return None 
+        
+    tempo, chord_structure, LEAD_INST, HARMONY_INST, BASS_INST, DRUM_INST = params
     
     TOTAL_DURATION = 60.0 
     midi_file = MIDIFile(4) 
@@ -84,11 +97,13 @@ def generate_music_sequence(genre="ambiente"):
     for track in range(4):
         midi_file.addTempo(track, 0, tempo)
     
+    # Program Change (Establecer el instrumento limitado al género)
     midi_file.addProgramChange(TRACK_LEAD, CHANNEL_LEAD, 0, LEAD_INST)
     midi_file.addProgramChange(TRACK_HARMONY, CHANNEL_HARMONY, 0, HARMONY_INST)
     midi_file.addProgramChange(TRACK_BASS, CHANNEL_BASS, 0, BASS_INST)
     midi_file.addProgramChange(TRACK_DRUMS, CHANNEL_DRUMS, 0, DRUM_INST) 
 
+    # Parámetros de la secuencia
     time = 0.0
     volume_lead = 100
     volume_harmony = 85
@@ -98,12 +113,13 @@ def generate_music_sequence(genre="ambiente"):
     base_note_chord = random.randint(55, 60) 
     base_note_lead = base_note_chord + 12 
     
-    # Loop de Generación
+    # 4. Loop de Generación (El algoritmo de composición se mantiene igual)
     while time < TOTAL_DURATION:
         
         beat_length = 60 / tempo
         
         # --- DRUMS (Track 3) ---
+        # Se pueden usar notas específicas para kits de Jazz (37, 40) si DRUM_INST lo requiere
         midi_file.addNote(TRACK_DRUMS, CHANNEL_DRUMS, 35, time, beat_length, volume_drums)
         midi_file.addNote(TRACK_DRUMS, CHANNEL_DRUMS, 35, time + beat_length * 2, beat_length, volume_drums)
         midi_file.addNote(TRACK_DRUMS, CHANNEL_DRUMS, 38, time + beat_length, beat_length, volume_drums)
