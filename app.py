@@ -4,9 +4,9 @@ import wikipedia
 import random
 import re 
 import os
-# Asegúrate de que 'youtube_analyzer.py' existe y está junto a este archivo
+# Asegúrate de que 'youtube_analyzer.py' exista
 from youtube_analyzer import analyze_youtube_link 
-# CORREGIDO: Importa la función de generación y la lista de géneros para el manejo de errores
+# Importa la función de generación y la lista de géneros para el manejo de errores
 from music_ia import generate_music_sequence, MUSIC_DIR, GENRE_MAPPING as music_ia 
 
 # --- CONFIGURACIÓN DE WIKIPEDIA Y FLASK ---
@@ -32,45 +32,76 @@ def handle_greetings(query):
 def handle_music_creation(query, state):
     """
     Maneja la lógica de creación de música usando la sintaxis:
-    "Quiero musica del genero [genero]"
+    "Quiero musica del genero [genero] [duracion]"
     """
     
-    pattern = r"quiero musica del genero\s+(.+)"
+    # Nueva expresión regular para capturar el género, el valor numérico y la unidad de duración
+    # Ejemplo de match: "quiero musica del genero rock gotico 5m"
+    pattern = r"quiero musica del genero\s+([\w\s]+?)\s+(\d+)\s*(m|hr|h)\b"
     match = re.search(pattern, query.lower())
     
-    # 1. Escenario: El usuario ha usado el comando correcto
+    # 1. Escenario: El usuario ha usado el comando correcto (con duración)
     if match:
         genre = match.group(1).strip()
+        duration_value = int(match.group(2))
+        duration_unit_raw = match.group(3).lower()
         
-        # Intentamos generar la música
-        filename = generate_music_sequence(genre)
-        
-        # RESPUESTA 1A: Género NO RECONOCIDO por music_ia.py
-        if filename is None:
-            # Crea una lista de géneros soportados para el mensaje de error
-            supported_genres = ", ".join([g.title() for g in music_ia.keys()]) 
+        total_duration_seconds = 0
+        duration_unit_friendly = "" 
+
+        # 1A. Parsear y calcular la duración en segundos
+        if duration_unit_raw in ['h', 'hr']:
+            total_duration_seconds = duration_value * 3600 # Horas a segundos
+            duration_unit_friendly = "hora(s)"
+        elif duration_unit_raw == 'm':
+            total_duration_seconds = duration_value * 60 # Minutos a segundos
+            duration_unit_friendly = "minuto(s)"
+
+        # 1B. Validar la duración (1m, 5m, 10m, 60m/1hr)
+        supported_durations_sec = [60, 300, 600, 3600] 
+
+        if total_duration_seconds not in supported_durations_sec:
             return {
-                "text": f"**[GÉNERO NO SOPORTADO]** Lo siento, PACURE IA solo genera música de géneros que conoce a fondo.\n\n"
+                "text": f"**[DURACIÓN NO SOPORTADA]** La duración solicitada ({duration_value}{duration_unit_raw}) no es válida.\n\n"
+                        f"Por favor, elige entre las duraciones soportadas: **1m, 5m, 10m, 60m, o 1hr**.",
+                "sources": ["pacureia.dev/duration_error"],
+                "imageTopic": "error"
+            }, True
+        
+        # 1C. Intentamos generar la música
+        filename = generate_music_sequence(genre, total_duration_seconds)
+        
+        # RESPUESTA 1D: Género NO RECONOCIDO (generate_music_sequence devuelve None)
+        if filename is None:
+            supported_genres = ", ".join([g.title() for g in music_ia.keys()])
+            return {
+                "text": f"**[GÉNERO NO SOPORTADO]** Lo siento, el compositor solo genera música de géneros que conoce a fondo.\n\n"
                         f"**El género '{genre.upper()}' no está en nuestra lista de géneros especializados.**\n\n"
                         f"Por favor, intenta con uno de los géneros soportados: **{supported_genres}**.",
                 "sources": ["pacureia.dev/genre_limit"],
                 "imageTopic": "musica_error"
             }, True
 
-        # RESPUESTA 1B: Generación exitosa
+        # RESPUESTA 1E: Generación exitosa
         file_url = url_for('get_music_file', filename=filename, _external=True)
         
+        # Formatear la duración para la respuesta
+        if total_duration_seconds >= 3600:
+            duration_display = f"{total_duration_seconds // 3600} {duration_unit_friendly}"
+        else:
+            duration_display = f"{total_duration_seconds // 60} {duration_unit_friendly}"
+            
         return {
-            "text": f"**[MÚSICA GENERADA CON ÉXITO]**\n\n¡Listo! He compuesto una pieza de **género {genre.upper()}** de 1 minuto con una paleta de instrumentos limitada a ese estilo. ¡La calidad es superior!\n\nHe guardado el archivo en el servidor como `{filename}`.\n\n**¡Disfruta la creación específica de PACURE IA!**",
+            "text": f"**[MÚSICA GENERADA CON ÉXITO]**\n\n¡Listo! He compuesto una pieza de **género {genre.upper()}** de **{duration_display}** con una paleta de instrumentos limitada a ese estilo. ¡La calidad es superior!\n\nHe guardado el archivo en el servidor como `{filename}`.\n\n**¡Disfruta la creación específica de PACURE IA!**",
             "sources": [file_url],
             "imageTopic": genre
         }, True
 
-    # 2. Escenario: El usuario inicia la creación o usa el comando incorrecto
+    # 2. Escenario: El usuario inicia la creación o usa el comando incorrecto (SIN duración)
     create_keywords = ["crea musica", "haz musica", "generar cancion", "compose una", "musica"]
     if any(keyword in query.lower() for keyword in create_keywords):
         return {
-            "text": "**[MODO CREACIÓN MUSICAL - SINTAXIS REQUERIDA]**\n\n¡Absolutamente! Para generar la pieza, usa la siguiente sintaxis obligatoria:\n\n**`Quiero musica del genero [el género que quieras]`**\n\n*(Ej: Quiero musica del genero Rock Gotico, Quiero musica del genero Jazz)*",
+            "text": "**[MODO CREACIÓN MUSICAL - SINTAXIS REQUERIDA]**\n\n¡Absolutamente! Para generar la pieza, usa la siguiente sintaxis obligatoria:\n\n**`Quiero musica del genero [el género que quieras] [duración]`**\n\n*(Ej: Quiero musica del genero Rock Gotico 5m, Quiero musica del genero Jazz 1hr)*\n\n**Duraciones soportadas:** 1m, 5m, 10m, 60m, 1hr.",
             "sources": ["pacureia.dev/music_init"],
             "imageTopic": "musica"
         }, True
