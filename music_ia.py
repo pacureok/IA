@@ -73,10 +73,7 @@ def generate_music_sequence(genre="ambiente"):
         with open(filepath, "wb") as output_file:
             midi_file.writeFile(output_file)
         
-        # Nota importante: No se realiza la conversión a MP3/WAV aquí
-        # porque requiere la librería pydub y la dependencia externa ffmpeg,
-        # lo cual es difícil de configurar en Render. Solo confirmaremos el MIDI.
-        
+        # Se retorna el nombre del archivo MIDI
         return filename
     except Exception as e:
         print(f"Error al escribir el archivo MIDI: {e}")
