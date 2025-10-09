@@ -4,10 +4,10 @@ import wikipedia
 import random
 import re 
 import os
-# Asegúrate de que 'youtube_analyzer.py' exista
+# --- IMPORTS DE MÓDULOS DEL PROYECTO ---
 from youtube_analyzer import analyze_youtube_link 
-# Importa la función de generación y la lista de géneros para el manejo de errores
 from music_ia import generate_music_sequence, MUSIC_DIR, GENRE_MAPPING as music_ia 
+from math_ia import solve_expression # Nueva Importación
 
 # --- CONFIGURACIÓN DE WIKIPEDIA Y FLASK ---
 wikipedia.set_lang("es")
@@ -23,55 +23,98 @@ def handle_greetings(query):
     greetings = ["hola", "que tal", "buenos dias", "buenas tardes"]
     if any(g in query.lower() for g in greetings):
         return {
-            "text": "¡Hola! ¿Qué tal? Como la Inteligencia Artificial de PACURE OK, estoy aquí para ayudarte con búsquedas, análisis o incluso para generar algo creativo. ¿En qué puedo asistirte hoy?",
+            "text": "¡Hola! ¿Qué tal? Como la Inteligencia Artificial de PACURE OK, estoy aquí para ayudarte con búsquedas, análisis, cálculos o incluso para generar algo creativo. ¿En qué puedo asistirte hoy?",
             "sources": ["pacureia.dev/greeting"],
             "imageTopic": "saludo"
         }
     return None
 
-def handle_music_creation(query, state):
+def handle_math_creation(query):
+    """
+    Maneja la lógica para evaluar expresiones matemáticas.
+    Detecta palabras clave como 'calcula', 'cuanto es', 'resuelve'.
+    """
+    query_lower = query.lower().strip()
+    math_keywords = ["calcula", "cuanto es", "resuelve", "que es el resultado de"]
+    
+    # 1. Chequea si la consulta empieza o contiene una palabra clave de cálculo
+    is_math_query = any(query_lower.startswith(k) for k in math_keywords)
+    
+    if not is_math_query:
+        # Intenta un patrón de expresión simple sin comando
+        # Ejemplo: "5 * 10 / 2"
+        simple_pattern = r"^\s*[\d\s\.\+\-\*/\(\)]+\s*$"
+        if re.match(simple_pattern, query_lower):
+            is_math_query = True
+        
+    if is_math_query:
+        # 2. Extraer la expresión (quitando palabras clave)
+        expression = query_lower
+        for k in math_keywords:
+            if expression.startswith(k):
+                expression = expression[len(k):].strip()
+                break
+        
+        # Si la expresión es corta o no tiene operadores, no la fuerces a ser matemática.
+        if len(expression) < 3 and not re.search(r'[\+\-\*/]', expression):
+            return None, False
+
+        # 3. Llamar a la función de cálculo
+        result, error = solve_expression(expression)
+        
+        if result is not None:
+            return {
+                "text": f"**[CÁLCULO MATEMÁTICO RESUELTO]**\n\n**Expresión:** `{expression}`\n**Resultado:** **{result}**",
+                "sources": ["pacureia.dev/math_solved"],
+                "imageTopic": "matematicas"
+            }, True
+        else:
+            return {
+                "text": f"**[ERROR DE CÁLCULO]**\n\nNo pude resolver la expresión `{expression}`.\n\n**Mensaje del sistema:** {error}",
+                "sources": ["pacureia.dev/math_error"],
+                "imageTopic": "error"
+            }, True
+
+    return None, False
+
+
+def handle_music_creation(query):
     """
     Maneja la lógica de creación de música usando la sintaxis:
     "Quiero musica del genero [genero] [duracion]"
     """
     
-    # Nueva expresión regular para capturar el género, el valor numérico y la unidad de duración
-    # Ejemplo de match: "quiero musica del genero rock gotico 5m"
+    # Expresión regular para capturar el género, el valor numérico y la unidad de duración
     pattern = r"quiero musica del genero\s+([\w\s]+?)\s+(\d+)\s*(m|hr|h)\b"
     match = re.search(pattern, query.lower())
     
-    # 1. Escenario: El usuario ha usado el comando correcto (con duración)
     if match:
         genre = match.group(1).strip()
         duration_value = int(match.group(2))
         duration_unit_raw = match.group(3).lower()
         
         total_duration_seconds = 0
-        duration_unit_friendly = "" 
-
-        # 1A. Parsear y calcular la duración en segundos
+        
         if duration_unit_raw in ['h', 'hr']:
-            total_duration_seconds = duration_value * 3600 # Horas a segundos
-            duration_unit_friendly = "hora(s)"
+            total_duration_seconds = duration_value * 3600
         elif duration_unit_raw == 'm':
-            total_duration_seconds = duration_value * 60 # Minutos a segundos
-            duration_unit_friendly = "minuto(s)"
+            total_duration_seconds = duration_value * 60
 
-        # 1B. Validar la duración (1m, 5m, 10m, 60m/1hr)
+        # Validar la duración (1m, 5m, 10m, 60m/1hr)
         supported_durations_sec = [60, 300, 600, 3600] 
 
         if total_duration_seconds not in supported_durations_sec:
             return {
-                "text": f"**[DURACIÓN NO SOPORTADA]** La duración solicitada ({duration_value}{duration_unit_raw}) no es válida.\n\n"
+                "text": f"**[DURACIÓN NO SOPORTADA]** La duración solicitada no es válida.\n\n"
                         f"Por favor, elige entre las duraciones soportadas: **1m, 5m, 10m, 60m, o 1hr**.",
                 "sources": ["pacureia.dev/duration_error"],
                 "imageTopic": "error"
             }, True
         
-        # 1C. Intentamos generar la música
+        # Intentamos generar la música
         filename = generate_music_sequence(genre, total_duration_seconds)
         
-        # RESPUESTA 1D: Género NO RECONOCIDO (generate_music_sequence devuelve None)
+        # RESPUESTA: Género NO RECONOCIDO
         if filename is None:
             supported_genres = ", ".join([g.title() for g in music_ia.keys()])
             return {
@@ -82,26 +125,22 @@ def handle_music_creation(query, state):
                 "imageTopic": "musica_error"
             }, True
 
-        # RESPUESTA 1E: Generación exitosa
+        # RESPUESTA: Generación exitosa
         file_url = url_for('get_music_file', filename=filename, _external=True)
         
-        # Formatear la duración para la respuesta
-        if total_duration_seconds >= 3600:
-            duration_display = f"{total_duration_seconds // 3600} {duration_unit_friendly}"
-        else:
-            duration_display = f"{total_duration_seconds // 60} {duration_unit_friendly}"
+        duration_display = f"{total_duration_seconds // 3600} hora(s)" if total_duration_seconds >= 3600 else f"{total_duration_seconds // 60} minuto(s)"
             
         return {
-            "text": f"**[MÚSICA GENERADA CON ÉXITO]**\n\n¡Listo! He compuesto una pieza de **género {genre.upper()}** de **{duration_display}** con una paleta de instrumentos limitada a ese estilo. ¡La calidad es superior!\n\nHe guardado el archivo en el servidor como `{filename}`.\n\n**¡Disfruta la creación específica de PACURE IA!**",
+            "text": f"**[MÚSICA GENERADA CON ÉXITO]**\n\n¡Listo! He compuesto una pieza de **género {genre.upper()}** de **{duration_display}**.\n\n**URL de Descarga:** {file_url}",
             "sources": [file_url],
             "imageTopic": genre
         }, True
 
-    # 2. Escenario: El usuario inicia la creación o usa el comando incorrecto (SIN duración)
+    # Mensaje de ayuda si se usa una palabra clave sin la sintaxis correcta
     create_keywords = ["crea musica", "haz musica", "generar cancion", "compose una", "musica"]
     if any(keyword in query.lower() for keyword in create_keywords):
         return {
-            "text": "**[MODO CREACIÓN MUSICAL - SINTAXIS REQUERIDA]**\n\n¡Absolutamente! Para generar la pieza, usa la siguiente sintaxis obligatoria:\n\n**`Quiero musica del genero [el género que quieras] [duración]`**\n\n*(Ej: Quiero musica del genero Rock Gotico 5m, Quiero musica del genero Jazz 1hr)*\n\n**Duraciones soportadas:** 1m, 5m, 10m, 60m, 1hr.",
+            "text": "**[MODO CREACIÓN MUSICAL - SINTAXIS REQUERIDA]**\n\nPara generar la pieza, usa la siguiente sintaxis obligatoria:\n\n**`Quiero musica del genero [el género que quieras] [duración]`**\n\n*(Ej: Quiero musica del genero Jazz 5m)*\n\n**Duraciones soportadas:** 1m, 5m, 10m, 60m, 1hr.",
             "sources": ["pacureia.dev/music_init"],
             "imageTopic": "musica"
         }, True
@@ -109,21 +148,19 @@ def handle_music_creation(query, state):
     return None, False
 
 def handle_conversational_query(query):
-    """
-    Genera una respuesta conversacional y lógica.
-    """
+    """Genera una respuesta conversacional y lógica."""
     query_lower = query.lower()
     
     if "que opinas de" in query_lower or "el significado de la vida" in query_lower or "el futuro de" in query_lower:
         return {
-            "text": f"Esa es una pregunta fascinante que requiere un profundo **sentido lógico y análisis**.\n\nDesde mi perspectiva como PACURE IA, {query}... es un tema que evoluciona rápidamente. Mis sistemas de lógica me dicen que cualquier análisis debe considerar la ética, la tecnología y el impacto humano. En resumen, **es una incógnita con un potencial inmenso.**",
+            "text": f"Esa es una pregunta fascinante que requiere un profundo **sentido lógico y análisis**. Desde mi perspectiva como PACURE IA, mis sistemas me dicen que cualquier análisis debe considerar la ética, la tecnología y el impacto humano. En resumen, **es una incógnita con un potencial inmenso.**",
             "sources": ["pacureia.dev/filosofia"],
             "imageTopic": "filosofia"
         }
     
     if "como te sientes" in query_lower or "eres inteligente" in query_lower:
         return {
-            "text": "**[Análisis de Estado y Capacidad]**\n\nComo PACURE IA, no tengo sentimientos, pero mi rendimiento operativo es óptimo. Mi 'inteligencia' se basa en la lógica, el análisis de datos (Wikipedia, YouTube, etc.) y la capacidad de tomar decisiones funcionales (como elegir una fuente o crear música). **Estoy funcionando con máxima eficiencia.**",
+            "text": "**[Análisis de Estado y Capacidad]**\n\nComo PACURE IA, no tengo sentimientos, pero mi rendimiento operativo es óptimo. Mi 'inteligencia' se basa en la lógica, el análisis de datos y la capacidad de tomar decisiones funcionales. **Estoy funcionando con máxima eficiencia.**",
             "sources": ["pacureia.dev/llm_status"],
             "imageTopic": "ia"
         }
@@ -136,8 +173,7 @@ def responder_creador(query):
     if any(keyword in query.lower() for keyword in creador_keywords):
         return (
             "Mi creador es **PACURE OK**. Soy parte de **PACURE WORKPLACE**.\n\n"
-            "Puedes visitar su canal oficial para más información:\n"
-            "Link de PACURE OK: [https://www.youtube.com/@pacureok](https://www.youtube.com/@pacureok)."
+            "Puedes visitar su canal oficial para más información: [https://www.youtube.com/@pacureok](https://www.youtube.com/@pacureok)."
         ), True
     return None, False
 
@@ -148,8 +184,8 @@ def buscar_en_wikipedia(query):
         
         for page_title in results:
             try:
-                page = wikipedia.page(page_title, auto_suggest=False, redirect=True)
                 summary = wikipedia.summary(page_title, sentences=3, auto_suggest=False, redirect=True)
+                page = wikipedia.page(page_title, auto_suggest=False, redirect=True)
                 return summary, page.url
             except wikipedia.exceptions.DisambiguationError: continue 
             except wikipedia.exceptions.PageError: continue 
@@ -188,7 +224,8 @@ def index():
 @app.route('/generated_music/<filename>')
 def get_music_file(filename):
     """Ruta para servir el archivo de música generado."""
-    return send_from_directory(music_ia.MUSIC_DIR, filename)
+    # Asegúrate de que MUSIC_DIR esté bien definida en music_ia
+    return send_from_directory(MUSIC_DIR, filename)
 
 
 @app.route('/api/chat', methods=['POST'])
@@ -215,12 +252,17 @@ def process_query():
             "sources": ["youtube.com/@pacureok"],
             "imageTopic": "creador"
         })
+    
+    # 3. MANEJO DE CÁLCULO MATEMÁTICO (Alta prioridad)
+    math_response, handled = handle_math_creation(query)
+    if handled: return jsonify(math_response)
 
-    # 3. MANEJO DE CREACIÓN MUSICAL (Prioridad alta con sintaxis obligatoria)
-    music_response, handled = handle_music_creation(query, {})
+
+    # 4. MANEJO DE CREACIÓN MUSICAL (Alta prioridad con sintaxis obligatoria)
+    music_response, handled = handle_music_creation(query)
     if handled: return jsonify(music_response)
 
-    # 4. MANEJO DE ENLACES DE YOUTUBE
+    # 5. MANEJO DE ENLACES DE YOUTUBE
     youtube_pattern = r'(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})'
     match = re.search(youtube_pattern, query)
 
@@ -246,11 +288,11 @@ def process_query():
             })
 
 
-    # 5. RESPUESTAS CONVERSACIONALES / LÓGICAS 
+    # 6. RESPUESTAS CONVERSACIONALES / LÓGICAS 
     conversational_response = handle_conversational_query(query)
     if conversational_response: return jsonify(conversational_response)
 
-    # 6. BÚSQUEDA GENERAL (Wikipedia + Web Scraping Simulado)
+    # 7. BÚSQUEDA GENERAL (Wikipedia + Web Scraping Simulado)
     
     wiki_summary, wiki_url = buscar_en_wikipedia(query)
     web_summary, web_sources = simular_web_scraping(query)
