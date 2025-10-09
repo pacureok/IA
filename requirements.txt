@@ -4,10 +4,10 @@ requests
 beautifulsoup4
 wikipedia
 gunicorn
-Pillow 
+Pillow
 midiutil
 lxml
 html5lib
 yt-dlp
-spacy==3.7.4
-blis==0.9.1
+spacy
+blis
