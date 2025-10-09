@@ -11,3 +11,5 @@ html5lib
 yt-dlp
 spacy
 es-core-news-sm
+spacy==3.5.0
+blis==0.7.10
