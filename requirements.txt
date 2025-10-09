@@ -11,3 +11,4 @@ html5lib
 yt-dlp
 spacy==3.5.0
 blis==0.7.10
+numpy==1.24.4
