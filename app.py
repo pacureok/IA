@@ -1,324 +1,107 @@
-from flask import Flask, render_template, request, jsonify, url_for, send_from_directory
-from flask_cors import CORS
+# Importa spaCy y otras librerías aquí
+import spacy
 import wikipedia
-import random
-import re 
-import os
-# --- IMPORTS DE MÓDULOS DEL PROYECTO ---
-# Asegúrate de que todos estos archivos existan y estén actualizados
-from youtube_analyzer import analyze_youtube_link 
-from music_ia import generate_music_sequence, MUSIC_DIR, GENRE_MAPPING as music_ia 
-from math_ia import solve_expression 
-from language_ia import analyze_query_intent # <<< NUEVA IMPORTACIÓN DE PNL
+import json
 
-# --- CONFIGURACIÓN DE WIKIPEDIA Y FLASK ---
+# Cargar el modelo de spaCy (asumiendo que es_core_news_sm fue descargado en el Build Command)
+try:
+    nlp = spacy.load("es_core-news-sm") # Corregido: spacy utiliza guion (-) no guion bajo (_) en el nombre del paquete
+    print("Módulo language_ia: spaCy cargado exitosamente para análisis.")
+except OSError:
+    print("Módulo language_ia: Error al cargar el modelo de spaCy. Asegúrate de que 'es_core-news-sm' fue descargado.")
+    nlp = None
+
+# Configurar Wikipedia
 wikipedia.set_lang("es")
-app = Flask(__name__)
-CORS(app) 
 
-# ============================================================
-# FUNCIONES DE PROCESAMIENTO CONVERSACIONAL Y CREATIVO
-# ============================================================
+def get_wikipedia_summary(search_term, sentences=2):
+    """Busca en Wikipedia y devuelve el resumen."""
+    try:
+        # Intenta obtener el resumen directamente
+        return wikipedia.summary(search_term, sentences=sentences, auto_suggest=False, redirect=True)
+    except wikipedia.exceptions.PageError:
+        return None
+    except wikipedia.exceptions.DisambiguationError as e:
+        # Manejar si el término es ambiguo
+        # Aquí se podría elegir el primer resultado, pero es más seguro no devolver nada si es ambiguo.
+        return f"Término ambiguo, opciones: {', '.join(e.options[:3])}..."
+    except Exception:
+        return None
 
-def handle_greetings(query):
-    """Maneja saludos simples y devuelve una respuesta conversacional."""
-    greetings = ["hola", "que tal", "buenos dias", "buenas tardes"]
-    if any(g in query.lower() for g in greetings):
-        return {
-            "text": "¡Hola! ¿Qué tal? Como la Inteligencia Artificial de PACURE OK, estoy aquí para ayudarte con búsquedas, análisis, cálculos o incluso para generar algo creativo. ¿En qué puedo asistirte hoy?",
-            "sources": ["pacureia.dev/greeting"],
-            "imageTopic": "saludo"
-        }
-    return None
-
-def handle_math_creation(query):
+def analyze_and_search(query):
     """
-    Maneja la lógica para evaluar expresiones matemáticas. 
-    (Esta función ya no necesita detectar la intención, solo procesa el cálculo)
+    Usa spaCy para extraer entidades o sujetos de la consulta para una búsqueda precisa.
     """
-    query_lower = query.lower().strip()
-    math_keywords = ["calcula", "cuanto es", "resuelve", "que es el resultado de"]
+    doc = nlp(query)
     
-    # Intenta limpiar la expresión quitando palabras clave
-    expression = query_lower
-    for k in math_keywords:
-        if expression.startswith(k):
-            expression = expression[len(k):].strip()
+    # Intenta encontrar la entidad o sujeto principal de la oración (ej: "presidente de España")
+    search_term = ""
+    for ent in doc.ents:
+        # Priorizar Nombres Propios (PERSON, LOC, ORG)
+        # Nota: Algunos modelos de spaCy para español usan etiquetas como 'PER'
+        if ent.label_ in ["PER", "LOC", "ORG", "MISC", "PERSON", "GPE"]: 
+            search_term = ent.text
             break
             
-    # Si la expresión es corta o no tiene operadores, no la fuerces a ser matemática.
-    if len(expression) < 3 and not re.search(r'[\+\-\*/]', expression):
-        return None, False
+    # Si no hay entidades claras, busca el sujeto principal (Noun Phrase)
+    if not search_term:
+        for chunk in doc.noun_chunks:
+            # Selecciona el chunk más largo como término de búsqueda potencial
+            search_term = chunk.text
+            break
+            
+    # Si sigue vacío, usa la consulta completa
+    if not search_term:
+        search_term = query
+        
+    # Limpia el término de búsqueda de artículos y preposiciones iniciales
+    if search_term.lower().startswith(('el ', 'la ', 'los ', 'las ', 'un ', 'una ', 'de ', 'del ')):
+        search_term = search_term.split(' ', 1)[-1]
 
-    result, error = solve_expression(expression)
+    summary = get_wikipedia_summary(search_term, sentences=3)
     
-    if result is not None:
-        return {
-            "text": f"**[CÁLCULO MATEMÁTICO RESUELTO]**\n\n**Expresión:** `{expression}`\n**Resultado:** **{result}**",
-            "sources": ["pacureia.dev/math_solved"],
-            "imageTopic": "matematicas"
-        }, True
+    if summary:
+        return f"**[Resultado de Wikipedia para '{search_term}']**\n{summary}"
     else:
-        return {
-            "text": f"**[ERROR DE CÁLCULO]**\n\nNo pude resolver la expresión `{expression}`.\n\n**Mensaje del sistema:** {error}",
-            "sources": ["pacureia.dev/math_error"],
-            "imageTopic": "error"
-        }, True
+        return None
 
-def handle_music_creation(query):
+def process_user_query(user_text):
     """
-    Maneja la lógica de creación de música. Se activa si el intent de PNL lo indica.
+    Función principal llamada por app.py.
+    Clasifica la pregunta y decide si buscar o responder directamente.
     """
+    user_text = user_text.strip()
     
-    # Expresión regular para capturar el género, el valor numérico y la unidad de duración
-    pattern = r"(?:quiero musica del genero|crear|haz musica)\s+([\w\s]+?)\s+(\d+)\s*(m|hr|h)\b"
-    match = re.search(pattern, query.lower())
+    if not nlp:
+        return "Lo siento, el modelo de análisis de lenguaje no se cargó correctamente en el servidor."
+
+    # --- 1. CLASIFICACIÓN (Simplificada) ---
     
-    if match:
-        genre = match.group(1).strip()
-        duration_value = int(match.group(2))
-        duration_unit_raw = match.group(3).lower()
+    # Clasificación de búsqueda: Preguntas que requieren información externa
+    # Esta lógica intenta ser más flexible.
+    if user_text.lower().startswith(("quién es", "¿quién es", "qué es", "¿qué es", "dónde está", "cuándo fue", "¿cuál es", "dime sobre")):
         
-        total_duration_seconds = 0
+        # Primero, intenta realizar la búsqueda usando spaCy
+        result = analyze_and_search(user_text)
         
-        if duration_unit_raw in ['h', 'hr']:
-            total_duration_seconds = duration_value * 3600
-        elif duration_unit_raw == 'm':
-            total_duration_seconds = duration_value * 60
-
-        supported_durations_sec = [60, 300, 600, 3600] 
-
-        if total_duration_seconds not in supported_durations_sec:
-            return {
-                "text": f"**[DURACIÓN NO SOPORTADA]** La duración solicitada no es válida.\n\n"
-                        f"Por favor, elige entre las duraciones soportadas: **1m, 5m, 10m, 60m, o 1hr**.",
-                "sources": ["pacureia.dev/duration_error"],
-                "imageTopic": "error"
-            }, True
+        if result:
+            # Si spaCy encuentra un buen término y Wikipedia devuelve un resumen
+            return result
+        # Si la búsqueda falla (por PageError, etc.), cae a la respuesta genérica/conversacional
         
-        # Intentamos generar la música
-        filename = generate_music_sequence(genre, total_duration_seconds)
+    # Clasificación de matemáticas: Si contiene números y operadores (si se requiere)
+    if any(op in user_text for op in ['+', '-', '*', '/', '^']) and any(c.isdigit() for c in user_text):
+        # Esta es la ruta para el módulo math_ia, que no está importado aquí.
+        return "Esta es una operación matemática, pero la lógica de cálculo aún no está implementada en este servidor."
         
-        if filename is None:
-            supported_genres = ", ".join([g.title() for g in music_ia.keys()])
-            return {
-                "text": f"**[GÉNERO NO SOPORTADO]** Lo siento, el compositor solo genera música de géneros que conoce a fondo.\n\n"
-                        f"**El género '{genre.upper()}' no está en nuestra lista de géneros especializados.**\n\n"
-                        f"Por favor, intenta con uno de los géneros soportados: **{supported_genres}**.",
-                "sources": ["pacureia.dev/genre_limit"],
-                "imageTopic": "musica_error"
-            }, True
-
-        file_url = url_for('get_music_file', filename=filename, _external=True)
-        duration_display = f"{total_duration_seconds // 3600} hora(s)" if total_duration_seconds >= 3600 else f"{total_duration_seconds // 60} minuto(s)"
-            
-        return {
-            "text": f"**[MÚSICA GENERADA CON ÉXITO]**\n\n¡Listo! He compuesto una pieza de **género {genre.upper()}** de **{duration_display}**.\n\n**URL de Descarga:** {file_url}",
-            "sources": [file_url],
-            "imageTopic": genre
-        }, True
-
-    # Mensaje de ayuda si se detectó la intención pero falló la sintaxis
-    return {
-        "text": "**[MODO CREACIÓN MUSICAL - SINTAXIS REQUERIDA]**\n\nPara generar la pieza, usa la siguiente sintaxis obligatoria:\n\n**`Quiero musica del genero [el género que quieras] [duración]`**\n\n*(Ej: Quiero musica del genero Jazz 5m)*\n\n**Duraciones soportadas:** 1m, 5m, 10m, 60m, 1hr.",
-        "sources": ["pacureia.dev/music_init"],
-        "imageTopic": "musica"
-    }, True
-
-
-def handle_conversational_query(intent, subject, query):
-    """
-    Genera una respuesta conversacional y lógica basada en la intención analizada.
-    """
-    query_lower = query.lower()
+    # --- 2. RESPUESTA GENERADA (SI FALLA O ES CONVERSACIONAL) ---
     
-    # Lógica de Identidad (Pregunta sobre el creador)
-    if "creador" in subject or "pacure" in subject or "quien te creo" in query_lower:
-        return {
-            "text": "Mi creador es **PACURE OK**. Soy parte de **PACURE WORKPLACE**.\n\n"
-                    "Puedes visitar su canal oficial para más información: [https://www.youtube.com/@pacureok](https://www.youtube.com/@pacureok).",
-            "sources": ["pacureia.dev/creador"],
-            "imageTopic": "creador"
-        }
-        
-    # Lógica de Filosofía/Opinión
-    if intent == "conversacion" or "opinas" in query_lower:
-        if subject in ["vida", "ia", "universo", "futuro", "tecnologia"]:
-            return {
-                "text": f"Esa es una pregunta fascinante que requiere un profundo **sentido lógico y análisis**. Desde mi perspectiva como PACURE IA, mis sistemas me dicen que cualquier análisis de '{subject}' debe considerar la ética, la tecnología y el impacto humano. En resumen, **es una incógnita con un potencial inmenso.**",
-                "sources": ["pacureia.dev/filosofia"],
-                "imageTopic": "filosofia"
-            }
-            
-    # Lógica de Estado
-    if "como te sientes" in query_lower or "eres inteligente" in query_lower:
-        return {
-            "text": "**[Análisis de Estado y Capacidad]**\n\nComo PACURE IA, no tengo sentimientos, pero mi rendimiento operativo es óptimo. Mi 'inteligencia' se basa en la lógica, el análisis de datos y la capacidad de tomar decisiones funcionales. **Estoy funcionando con máxima eficiencia.**",
-            "sources": ["pacureia.dev/llm_status"],
-            "imageTopic": "ia"
-        }
+    # Si no es una búsqueda exitosa ni una matemática, responde con IA (simulación de respuesta propia)
+    if "hola" in user_text.lower() or "saludo" in user_text.lower():
+        return "¡Hola! Soy PACURE IA, tu asistente de IA. Estoy lista para buscar información o conversar contigo. ¿En qué puedo ayudarte hoy?"
     
-    return None 
+    if "marketing" in user_text.lower():
+        return "Un excelente plan para un canal de YouTube debe centrarse en la creación de contenido de alta calidad y la optimización SEO. El uso de miniaturas atractivas y títulos optimizados es crucial para el crecimiento. ¡A crecer! 🚀"
 
-def buscar_en_wikipedia(query):
-    """Busca en Wikipedia y devuelve el resumen y la URL de la página."""
-    try:
-        results = wikipedia.search(query, results=5)
-        if not results: return None, None
-        
-        for page_title in results:
-            try:
-                summary = wikipedia.summary(page_title, sentences=3, auto_suggest=False, redirect=True)
-                page = wikipedia.page(page_title, auto_suggest=False, redirect=True)
-                return summary, page.url
-            except wikipedia.exceptions.DisambiguationError: continue 
-            except wikipedia.exceptions.PageError: continue 
-            
-        return None, None
-            
-    except Exception as e:
-        print(f"Error general en Wikipedia: {e}")
-        return None, None
-
-def simular_web_scraping(query):
-    """Simula un análisis de fuentes web para complementar Wikipedia."""
-    fuentes = []
-    simulated_sites = [
-        f"foro-{query[:5].replace(' ', '-')}.com", f"blog-analisis.net", f"revista-tech.io", 
-        f"data-pacure.org", f"web-{random.randint(100, 999)}.net",
-        f"datos-ia-{random.randint(1, 100)}.com", f"resumenes-rapidos.org",
-        f"conocimiento-libre.net", f"investigacion-profunda.net"
-    ]
-    
-    for site in simulated_sites: fuentes.append(site)
-
-    resumen_analisis = f"El análisis de **{len(simulated_sites)} fuentes web** complementarias indica un fuerte consenso sobre la relevancia de '{query.upper()[:20]}...'. La información obtenida ha sido filtrada para eliminar duplicados y asegurar la calidad del dato."
-    
-    return resumen_analisis, fuentes
-
-
-# ============================================================
-# RUTAS DE FLASK
-# ============================================================
-
-@app.route('/')
-def index():
-    """Ruta principal para cargar el frontend."""
-    return render_template('index.html')
-
-@app.route('/generated_music/<filename>')
-def get_music_file(filename):
-    """Ruta para servir el archivo de música generado."""
-    return send_from_directory(MUSIC_DIR, filename)
-
-
-@app.route('/api/chat', methods=['POST'])
-def process_query():
-    """Ruta API para procesar la consulta del usuario usando PNL."""
-    query = request.form.get('query', '').strip()
-
-    if not query:
-        return jsonify({
-            "text": "Tu consulta está vacía. Por favor, escribe lo que deseas buscar o analizar.",
-            "sources": ["pacureia.dev"],
-            "imageTopic": "error"
-        }), 400
-
-    # 0. ANÁLISIS DE LENGUAJE (PNL)
-    # Obtenemos la intención, el sujeto y las entidades clave
-    intent, subject, entities = analyze_query_intent(query)
-    
-    # 1. VERIFICACIÓN DE SALUDO (Sigue siendo simple y por encima de PNL)
-    greeting_response = handle_greetings(query)
-    if greeting_response: return jsonify(greeting_response)
-
-    # 2. MANEJO DE CÁLCULO MATEMÁTICO (Activado por PNL)
-    if intent == "calculo":
-        math_response, handled = handle_math_creation(query) 
-        if handled: return jsonify(math_response)
-
-    # 3. MANEJO DE CREACIÓN MUSICAL (Activado por PNL)
-    if intent == "creacion_musica":
-        music_response, handled = handle_music_creation(query)
-        if handled: return jsonify(music_response)
-
-    # 4. MANEJO DE ENLACES DE YOUTUBE (Prioridad alta con RegEx)
-    youtube_pattern = r'(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})'
-    match = re.search(youtube_pattern, query)
-
-    if match:
-        video_id = match.group(1)
-        video_url = f"https://www.youtube.com/watch?v={video_id}"
-        analysis_result = analyze_youtube_link(video_url)
-
-        if analysis_result:
-            return jsonify({
-                "text": f"**[ANÁLISIS DE VIDEO COMPLETADO]**\n\n"
-                        f"He revisado el video **'{analysis_result['title']}'** por **{analysis_result['uploader']}** (Duración: {analysis_result['duration']}).\n\n"
-                        f"**Mini Resumen:** {analysis_result['summary']}\n\n"
-                        f"Este video trata principalmente sobre **{analysis_result['topic']}**.",
-                "sources": [video_url],
-                "imageTopic": analysis_result['topic']
-            })
-        else:
-             return jsonify({
-                "text": "**[ERROR DE ANÁLISIS]** No pude obtener los metadatos de ese video de YouTube. Es posible que el video no exista, sea privado o esté bloqueado.",
-                "sources": ["pacureia.dev/error"],
-                "imageTopic": "error de video"
-            })
-
-
-    # 5. RESPUESTAS CONVERSACIONALES / LÓGICAS (Activado por PNL)
-    conversational_response = handle_conversational_query(intent, subject, query)
-    if conversational_response: return jsonify(conversational_response)
-
-    # 6. BÚSQUEDA GENERAL (Wikipedia + Web Scraping Simulado)
-    
-    # Usamos el 'subject' analizado por PNL, que es más preciso que la consulta completa
-    search_term = subject if subject else query 
-    wiki_summary, wiki_url = buscar_en_wikipedia(search_term)
-    web_summary, web_sources = simular_web_scraping(search_term)
-    
-    final_text = ""
-    final_sources = []
-
-    if wiki_summary:
-        if wiki_url: final_sources.append(wiki_url)
-        final_sources.extend(web_sources)
-        
-        final_text = (
-            f"**[RESULTADO DE LA BÚSQUEDA Y ANÁLISIS]**\n\n"
-            f"Nuestra IA ha procesado 10 fuentes (Wikipedia + 9 sitios complementarios) sobre **'{search_term.upper()}'**.\n\n"
-            f"**Resumen de Wikipedia:**\n"
-            f"{wiki_summary}\n\n"
-            f"**Análisis de Fuentes Adicionales:**\n"
-            f"{web_summary}\n\n"
-            f"La información ha sido resumida y depurada. Puedes encontrar las fuentes consultadas abajo."
-        )
-        
-        return jsonify({
-            "text": final_text,
-            "sources": final_sources,
-            "imageTopic": search_term 
-        })
-    else:
-        final_text = (
-            "**[PACURE IA - BÚSQUEDA Y ANÁLISIS FALLIDO]**\n\n"
-            f"Lo siento, PACURE IA no ha encontrado ninguna página de Wikipedia o fuente web relevante y estructurada sobre **'{search_term}'**.\n"
-            "Esto pudo ocurrir porque la consulta es ambigua o no está en nuestra base de datos.\n\n"
-            "**Sugerencia:** Intenta con una pregunta que requiera un análisis lógico o creativo (ej. 'Dime la importancia de la IA')."
-        )
-        
-        return jsonify({
-            "text": final_text,
-            "sources": ["pacureia.dev/error"],
-            "imageTopic": "error de busqueda"
-        })
-
-# ============================================================
-# INICIALIZACIÓN
-# ============================================================
-
-if __name__ == '__main__':
-    # Usar puerto 5000 para entorno local de pruebas
-    app.run(debug=True, port=5000)
+    # Respuesta predeterminada
+    return "Gracias por tu pregunta. He analizado el lenguaje pero no encontré una respuesta específica en mi base de conocimientos. ¿Podrías reformularla o preguntar algo diferente? 💡"
