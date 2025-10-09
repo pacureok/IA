@@ -9,5 +9,3 @@ midiutil
 lxml
 html5lib
 yt-dlp
-spacy
-blis
