@@ -1,4 +1,4 @@
-# music_ia.py - Generación de música con LÓGICA DE GÉNERO ESTRICTA
+# music_ia.py - Generación de música con LÓGICA DE GÉNERO ESTRICTA y DURACIÓN VARIABLE
 
 from midiutil import MIDIFile
 import random
@@ -18,12 +18,14 @@ GM_INSTRUMENTS = {
     "Synth Lead": 80, "Sawtooth": 81, "Pad Choir": 89, "Pad Warm": 88,
     # Otros
     "Accordion": 21, "Timpani": 47,
-    # Percusión (Usaremos IDs para kits, pero el canal 9 manda)
-    "Standard Kit": 0, "Jazz Kit": 1, "Brush Kit": 8, 
+    # Percusión (CORREGIDO: Esta clave ahora existe para evitar el KeyError)
+    "Percussion": 118, 
+    "Standard Kit": 0, 
+    "Jazz Kit": 1, 
+    "Brush Kit": 8, 
 }
 
 # --- Mapeo de Géneros a Parámetros y 4 Instrumentos ESPECÍFICOS ---
-# Si un género no está aquí, NO SE GENERARÁ música.
 GENRE_MAPPING = {
     "rock": {"tempo": 110, "chords": [0, 4, 7], "lead": GM_INSTRUMENTS["Overdriven Guitar"], "harmony": GM_INSTRUMENTS["Electric Piano"], "bass": GM_INSTRUMENTS["Electric Bass"], "drums": GM_INSTRUMENTS["Standard Kit"]},
     "rock gotico": {"tempo": 90, "chords": [0, 3, 7], "lead": GM_INSTRUMENTS["Distortion Guitar"], "harmony": GM_INSTRUMENTS["Strings Ensemble"], "bass": GM_INSTRUMENTS["Electric Bass"], "drums": GM_INSTRUMENTS["Standard Kit"]},
@@ -44,47 +46,40 @@ os.makedirs(MUSIC_DIR, exist_ok=True)
 
 def get_genre_parameters(genre):
     """
-    Obtiene parámetros detallados. Si el género no se encuentra, 
-    devuelve None para forzar el mensaje de "no reconocido".
+    Obtiene parámetros detallados. Devuelve None si el género no está mapeado.
     """
     genre_lower = genre.lower()
-    
-    # Intenta obtener el mapeo
     params = GENRE_MAPPING.get(genre_lower)
     
     if not params:
-        # **CAMBIO CLAVE:** Devuelve None si el género no está en la lista.
         return None 
     
-    # Asignamos el ID del instrumento de percusión para el Canal 9
     drums_program = params["drums"] 
 
-    # Para los otros tracks, usamos el ID del instrumento
     return (
         params["tempo"], 
         params["chords"], 
         params["lead"], 
         params["harmony"], 
         params["bass"], 
-        drums_program # ID del kit de percusión (Aunque el canal 9 es el que define el sonido)
+        drums_program 
     )
 
 # ----------------- Función Principal de Generación -----------------
 
-def generate_music_sequence(genre="ambiente"):
+def generate_music_sequence(genre, total_duration_seconds):
     """
-    Genera una secuencia MIDI de ~60 segundos con instrumentos limitados al género.
+    Genera una secuencia MIDI con duración específica en segundos.
     """
     
-    # 1. Definir parámetros. Si es None, salimos.
     params = get_genre_parameters(genre)
     if not params:
-        # Devuelve None para que app.py pueda manejar el error de "género no soportado"
-        return None 
+        return None # Género no soportado
         
     tempo, chord_structure, LEAD_INST, HARMONY_INST, BASS_INST, DRUM_INST = params
     
-    TOTAL_DURATION = 60.0 
+    # Usa la duración pasada como argumento
+    TOTAL_DURATION = float(total_duration_seconds)
     midi_file = MIDIFile(4) 
     
     # Tracks y Canales
@@ -97,7 +92,6 @@ def generate_music_sequence(genre="ambiente"):
     for track in range(4):
         midi_file.addTempo(track, 0, tempo)
     
-    # Program Change (Establecer el instrumento limitado al género)
     midi_file.addProgramChange(TRACK_LEAD, CHANNEL_LEAD, 0, LEAD_INST)
     midi_file.addProgramChange(TRACK_HARMONY, CHANNEL_HARMONY, 0, HARMONY_INST)
     midi_file.addProgramChange(TRACK_BASS, CHANNEL_BASS, 0, BASS_INST)
@@ -113,13 +107,13 @@ def generate_music_sequence(genre="ambiente"):
     base_note_chord = random.randint(55, 60) 
     base_note_lead = base_note_chord + 12 
     
-    # 4. Loop de Generación (El algoritmo de composición se mantiene igual)
+    # Loop de Generación: Itera hasta alcanzar TOTAL_DURATION
     while time < TOTAL_DURATION:
         
+        # Longitud del compás (4 tiempos)
         beat_length = 60 / tempo
         
         # --- DRUMS (Track 3) ---
-        # Se pueden usar notas específicas para kits de Jazz (37, 40) si DRUM_INST lo requiere
         midi_file.addNote(TRACK_DRUMS, CHANNEL_DRUMS, 35, time, beat_length, volume_drums)
         midi_file.addNote(TRACK_DRUMS, CHANNEL_DRUMS, 35, time + beat_length * 2, beat_length, volume_drums)
         midi_file.addNote(TRACK_DRUMS, CHANNEL_DRUMS, 38, time + beat_length, beat_length, volume_drums)
@@ -167,7 +161,7 @@ def generate_music_sequence(genre="ambiente"):
 
 
     # 6. Guardar el archivo
-    filename = f"music_{genre.replace(' ', '_')}_{random.randint(1000, 9999)}.mid"
+    filename = f"music_{genre.replace(' ', '_')}_{total_duration_seconds}s_{random.randint(1000, 9999)}.mid"
     filepath = os.path.join(MUSIC_DIR, filename)
 
     try:
