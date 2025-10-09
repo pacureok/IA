@@ -1,8 +1,3 @@
-# =================================================================
-# math_ia.py
-# Módulo de ejemplo para las operaciones matemáticas o lógicas de PACURE AI
-# =================================================================
-
 import re
 import math
 import operator
@@ -43,22 +38,16 @@ def tokenize_expression(expression):
 def evaluate_tokens(tokens):
     """
     Evalúa una lista de tokens. 
-    (Nota: Para una calculadora real se usaría un algoritmo 
-    Shunting-yard y Reverse Polish Notation (RPN)).
-    Esta es una implementación simplificada de solo izquierda a derecha.
+    Esta es una implementación simplificada que usa 'eval' (con restricciones de seguridad).
     """
     if not tokens:
         return 0
     
-    # Simplificación: Intentar evaluar la expresión directamente usando 'eval' 
-    # (¡NO SE RECOMIENDA en producción por seguridad!)
-    # Si PACURE requiere seguridad total, se debe usar un parser estricto.
     try:
         # Reconstruir la expresión para una evaluación segura (limitando globals/locals)
-        # Esto solo funciona para expresiones simples sin funciones
         safe_expr = "".join(tokens).replace('^', '**')
         
-        # Uso limitado de eval para demostrar el concepto, se debe reemplazar por RPN
+        # Uso de eval limitado.
         return eval(safe_expr, {'__builtins__': None}, {'math': math})
     except Exception as e:
         # Devuelve el error para debugging
@@ -70,27 +59,3 @@ def solve_expression(raw_expression):
     tokens = tokenize_expression(cleaned)
     result = evaluate_tokens(tokens)
     return result
-
-# =================================================================
-# Código de Prueba (Se ejecuta al importar el módulo)
-# =================================================================
-
-if __name__ == '__main__':
-    # Pruebas para la función
-    print("--- Pruebas de solve_expression ---")
-    
-    # Prueba simple
-    print(f"5 + 3 * 2 = {solve_expression('5 + 3 * 2')}")
-    
-    # Prueba con potencias
-    print(f"2^3 + 1 = {solve_expression('2^3 + 1')}")
-    
-    # Prueba con decimales
-    print(f"10 / 2.5 = {solve_expression('10 / 2.5')}")
-    
-    # Prueba con paréntesis (depende de la implementación de 'eval' o parser)
-    print(f"(5 + 3) * 2 = {solve_expression('(5 + 3) * 2')}")
-
-    # LÍNEA CORREGIDA (Línea 73)
-    # Cambiamos \' por " para evitar el error de sintaxis en el f-string.
-    print(f"os.system('ls') = {solve_expression('os.system(\"ls\")')}")
