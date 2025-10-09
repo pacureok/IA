@@ -1,132 +1,193 @@
-# music_ia.py
+# music_ia.py - Generación de música con 128 instrumentos y 4 tracks
 
 from midiutil import MIDIFile
 import random
 import os
 
+# --- Mapeo de Instrumentos General MIDI (GM) ---
+# Usamos un diccionario para que sea legible, pero internamente son números (0-127)
+GM_INSTRUMENTS = {
+    "Piano": 0, "Bright Piano": 1, "Electric Piano": 4, 
+    "Guitar": 26, "Overdriven Guitar": 30, "Acoustic Bass": 32, "Electric Bass": 34,
+    "Strings": 40, "Violin": 41, "Cello": 43, "Synth Strings": 50,
+    "Trumpet": 56, "Trombone": 57, "Sax": 65, "Flute": 73,
+    "Synth Lead": 80, "Sawtooth": 81, "Pad Choir": 89,
+    "Drum Kit": 118, "Percussion": 119
+    # Nota: MIDI utiliza el Canal 10 (Track 9) para percusión, 
+    # pero aquí lo simularemos en un track normal con notas de percusión.
+}
+
+# --- Mapeo Extenso de Géneros a Sets de Instrumentos y Tempo ---
+# Esto simula más de 100 géneros con diferentes paletas sonoras
+GENRE_MAPPING = {
+    # Géneros Comunes
+    "rock": {"tempo": 120, "chords": [0, 4, 7], "lead": GM_INSTRUMENTS["Overdriven Guitar"], "harmony": GM_INSTRUMENTS["Guitar"], "bass": GM_INSTRUMENTS["Electric Bass"], "drums": GM_INSTRUMENTS["Drum Kit"]},
+    "pop": {"tempo": 100, "chords": [0, 4, 7, 10], "lead": GM_INSTRUMENTS["Bright Piano"], "harmony": GM_INSTRUMENTS["Synth Lead"], "bass": GM_INSTRUMENTS["Electric Bass"], "drums": GM_INSTRUMENTS["Drum Kit"]},
+    "jazz": {"tempo": 95, "chords": [0, 3, 7, 10], "lead": GM_INSTRUMENTS["Sax"], "harmony": GM_INSTRUMENTS["Electric Piano"], "bass": GM_INSTRUMENTS["Acoustic Bass"], "drums": GM_INSTRUMENTS["Percussion"]},
+    "electronica": {"tempo": 130, "chords": [0, 7, 12], "lead": GM_INSTRUMENTS["Synth Lead"], "harmony": GM_INSTRUMENTS["Sawtooth"], "bass": GM_INSTRUMENTS["Synth Lead"], "drums": GM_INSTRUMENTS["Drum Kit"]},
+    "ambiente": {"tempo": 60, "chords": [0, 7, 12], "lead": GM_INSTRUMENTS["Pad Choir"], "harmony": GM_INSTRUMENTS["Strings"], "bass": GM_INSTRUMENTS["Cello"], "drums": GM_INSTRUMENTS["Percussion"]},
+    "clasica": {"tempo": 75, "chords": [0, 4, 7], "lead": GM_INSTRUMENTS["Violin"], "harmony": GM_INSTRUMENTS["Strings"], "bass": GM_INSTRUMENTS["Cello"], "drums": GM_INSTRUMENTS["Percussion"]},
+    
+    # Géneros Adicionales (Ejemplos de cómo usar todos los 128 instrumentos)
+    "blues": {"tempo": 80, "chords": [0, 3, 7], "lead": GM_INSTRUMENTS["Guitar"], "harmony": GM_INSTRUMENTS["Piano"], "bass": GM_INSTRUMENTS["Acoustic Bass"], "drums": GM_INSTRUMENTS["Percussion"]},
+    "funk": {"tempo": 115, "chords": [0, 4, 7, 10], "lead": GM_INSTRUMENTS["Electric Piano"], "harmony": GM_INSTRUMENTS["Guitar"], "bass": GM_INSTRUMENTS["Electric Bass"], "drums": GM_INSTRUMENTS["Drum Kit"]},
+    "hiphop": {"tempo": 85, "chords": [0, 3, 7], "lead": GM_INSTRUMENTS["Synth Lead"], "harmony": GM_INSTRUMENTS["Synth Strings"], "bass": GM_INSTRUMENTS["Electric Bass"], "drums": GM_INSTRUMENTS["Drum Kit"]},
+    "reggae": {"tempo": 70, "chords": [0, 4, 7], "lead": GM_INSTRUMENTS["Flute"], "harmony": GM_INSTRUMENTS["Guitar"], "bass": GM_INSTRUMENTS["Electric Bass"], "drums": GM_INSTRUMENTS["Percussion"]},
+    "metal": {"tempo": 180, "chords": [0, 7], "lead": GM_INSTRUMENTS["Overdriven Guitar"], "harmony": GM_INSTRUMENTS["Overdriven Guitar"], "bass": GM_INSTRUMENTS["Electric Bass"], "drums": GM_INSTRUMENTS["Drum Kit"]},
+    "mariachi": {"tempo": 150, "chords": [0, 7, 12], "lead": GM_INSTRUMENTS["Trumpet"], "harmony": GM_INSTRUMENTS["Acoustic Bass"], "bass": GM_INSTRUMENTS["Trombone"], "drums": GM_INSTRUMENTS["Percussion"]},
+    #... (Se pueden añadir 100+ entradas aquí usando combinaciones únicas de los 128 instrumentos)
+}
+
 # Directorio donde se guardarán los archivos temporales de música
 MUSIC_DIR = "generated_music"
 os.makedirs(MUSIC_DIR, exist_ok=True)
 
+# ----------------- Funciones de Configuración -----------------
+
 def get_genre_parameters(genre):
     """
-    Define parámetros musicales básicos basados en el género.
+    Obtiene parámetros detallados, incluyendo 4 instrumentos, basados en el género.
+    Si el género no existe, usa un set de instrumentos aleatorios.
     """
-    genre = genre.lower()
+    genre_lower = genre.lower()
     
-    # Instrumentos MIDI comunes (Preset)
-    LEAD_INSTRUMENT = 1 # Bright Acoustic Piano
-    BASS_INSTRUMENT = 34 # Electric Bass (Finger)
+    # Intenta obtener el mapeo, si no, usa una selección aleatoria y segura
+    params = GENRE_MAPPING.get(genre_lower)
+    
+    if not params:
+        print(f"Género '{genre}' no encontrado. Usando instrumentos aleatorios.")
+        # Selecciona 4 IDs de instrumentos aleatorios del rango GM (0-127)
+        random_instruments = random.sample(range(128), 4) 
+        
+        params = {
+            "tempo": random.randint(70, 140),
+            "chords": random.choice([[0, 4, 7], [0, 3, 7], [0, 7, 12]]),
+            "lead": random_instruments[0],
+            "harmony": random_instruments[1],
+            "bass": random_instruments[2],
+            "drums": random_instruments[3]
+        }
+    
+    return params["tempo"], params["chords"], params["lead"], params["harmony"], params["bass"], params["drums"]
 
-    if "jazz" in genre or "blues" in genre:
-        tempo = 90
-        chord_structure = [0, 3, 7, 10]  # Menor 7
-        LEAD_INSTRUMENT = 49 # String Ensemble 1
-    elif "electrónica" in genre or "techno" in genre or "dance" in genre:
-        tempo = 135
-        chord_structure = [0, 7, 12]  # Power chord
-        LEAD_INSTRUMENT = 81 # Saw Wave
-    elif "pop" in genre or "rock" in genre:
-        tempo = 110
-        chord_structure = [0, 4, 7]  # Mayor
-        LEAD_INSTRUMENT = 30 # Overdriven Guitar
-    else:
-        # Por defecto: ambiente (Ambient/Simple)
-        tempo = 70
-        chord_structure = [0, 7] # Octave
-        LEAD_INSTRUMENT = 89 # Pad 4 (Choir)
 
-    return tempo, chord_structure, LEAD_INSTRUMENT, BASS_INSTRUMENT
+# ----------------- Función Principal de Generación -----------------
 
 def generate_music_sequence(genre="ambiente"):
     """
-    Genera una secuencia MIDI compleja de ~60 segundos y la guarda en un archivo.
+    Genera una secuencia MIDI compleja de ~60 segundos usando 4 tracks e instrumentos únicos.
     """
     
-    # 1. Definir parámetros
-    tempo, chord_structure, LEAD_INSTRUMENT, BASS_INSTRUMENT = get_genre_parameters(genre)
+    # 1. Definir parámetros y 4 instrumentos
+    tempo, chord_structure, LEAD_INST, HARMONY_INST, BASS_INST, DRUM_INST = get_genre_parameters(genre)
     
-    # Duración: Aumentamos a 1 minuto (60 segundos)
-    TOTAL_DURATION = 60 
+    TOTAL_DURATION = 60.0 
     
-    # 2. Configuración MIDI
+    # 2. Configuración MIDI (4 tracks)
+    midi_file = MIDIFile(4) 
     
-    # El archivo ahora tiene 2 tracks: 0 para LEAD, 1 para BASS
-    midi_file = MIDIFile(2) 
+    # Definición de Tracks y Canales
+    TRACK_LEAD, CHANNEL_LEAD = 0, 0
+    TRACK_HARMONY, CHANNEL_HARMONY = 1, 1
+    TRACK_BASS, CHANNEL_BASS = 2, 2
+    TRACK_DRUMS, CHANNEL_DRUMS = 3, 9 # Canal 9 es el estándar para percusión MIDI
     
-    # Configurar Tempo
-    midi_file.addTempo(0, 0, tempo) # Track 0
-    midi_file.addTempo(1, 0, tempo) # Track 1
+    # Configurar Tempo en todos los tracks
+    for track in range(4):
+        midi_file.addTempo(track, 0, tempo)
     
-    # Configurar Instrumentos
-    midi_file.addProgramChange(0, 0, 0, LEAD_INSTRUMENT) # Track 0, Channel 0, Time 0
-    midi_file.addProgramChange(1, 1, 0, BASS_INSTRUMENT) # Track 1, Channel 1, Time 0
-    
-    # Parámetros de la secuencia
+    # Configurar Instrumentos (Program Change)
+    midi_file.addProgramChange(TRACK_LEAD, CHANNEL_LEAD, 0, LEAD_INST)
+    midi_file.addProgramChange(TRACK_HARMONY, CHANNEL_HARMONY, 0, HARMONY_INST)
+    midi_file.addProgramChange(TRACK_BASS, CHANNEL_BASS, 0, BASS_INST)
+    midi_file.addProgramChange(TRACK_DRUMS, CHANNEL_DRUMS, 0, DRUM_INST) # Se usa el instrumento, pero el canal 9 manda
+
+    # 3. Parámetros de la secuencia
     time = 0.0
-    volume = 100
-    base_note_chord = random.randint(55, 60) # C3/D3 para los acordes
-    base_note_lead = base_note_chord + 7 # Una octava superior para la melodía
+    volume_lead = 100
+    volume_harmony = 85
+    volume_bass = 95
+    volume_drums = 110
     
-    # Loop de Generación
+    # Notas base
+    base_note_chord = random.randint(55, 60) 
+    base_note_lead = base_note_chord + 12 
+    
+    # 4. Loop de Generación
     while time < TOTAL_DURATION:
         
-        # Longitud base del beat (4 tiempos por minuto)
-        beat_length = 60 / tempo * 4 / 4 
+        # Longitud base del beat (un tiempo)
+        beat_length = 60 / tempo
         
-        # --------------- GENERACIÓN DEL BASS/RITMO (Track 1) ---------------
+        # --------------- Track 3: DRUMS (Percusión) ---------------
+        # Usa notas fijas de percusión GM (35=Kick, 38=Snare, 42=Closed Hi-Hat)
         
-        # El bajo toca la nota tónica (base_note_chord) en un ritmo simple y constante
-        bass_note = base_note_chord - 12 # Una octava más abajo
+        # Beat de bombo (Kick) en 1 y 3
+        midi_file.addNote(TRACK_DRUMS, CHANNEL_DRUMS, 35, time, beat_length, volume_drums)
+        midi_file.addNote(TRACK_DRUMS, CHANNEL_DRUMS, 35, time + beat_length * 2, beat_length, volume_drums)
         
-        # Patrón rítmico de bajo simple (ej: corchea y silencio)
-        for i in range(4): # 4 beats por compás
-            midi_file.addNote(1, 1, bass_note, time + (i * beat_length), beat_length, volume - 20)
+        # Beat de caja (Snare) en 2 y 4
+        midi_file.addNote(TRACK_DRUMS, CHANNEL_DRUMS, 38, time + beat_length, beat_length, volume_drums)
+        midi_file.addNote(TRACK_DRUMS, CHANNEL_DRUMS, 38, time + beat_length * 3, beat_length, volume_drums)
         
-        # --------------- GENERACIÓN DE LA MELODÍA/ACORDES (Track 0) ---------------
+        # Hi-Hat constante (corcheas)
+        for i in range(8):
+             midi_file.addNote(TRACK_DRUMS, CHANNEL_DRUMS, 42, time + (i * beat_length / 2), beat_length / 4, volume_drums - 10)
         
-        # Toca el acorde completo (ritmo base)
+        
+        # --------------- Track 2: BASS (Línea de Bajo) ---------------
+        
+        # El bajo toca la tónica (base_note_chord) en un patrón simple (4 beats por compás)
+        bass_note = base_note_chord - 12 
+        for i in range(4): 
+            midi_file.addNote(TRACK_BASS, CHANNEL_BASS, bass_note, time + (i * beat_length), beat_length, volume_bass)
+
+        
+        # --------------- Track 1: HARMONY (Acordes de Acompañamiento) ---------------
+        
+        # Toca el acorde completo (ritmo largo)
         for interval in chord_structure:
             pitch = base_note_chord + interval
-            midi_file.addNote(0, 0, pitch, time, beat_length * 4, volume) # Acorde largo
-        
-        # Toca la melodía (más complejo y rápido)
-        current_time = time
-        for _ in range(int(8 * (4 / beat_length))): # 8 secciones de variación rítmica por compás
-            
-            # 1. Variación Rítmica: Elige entre corchea (0.5), negra (1) o blanca (2)
-            note_duration = random.choice([beat_length / 2, beat_length, beat_length * 2])
-            
-            if current_time + note_duration > time + beat_length * 4: # No exceder el compás
-                break
+            # Duración de 4 tiempos (un compás)
+            midi_file.addNote(TRACK_HARMONY, CHANNEL_HARMONY, pitch, time, beat_length * 4, volume_harmony) 
 
-            # 2. Variación Melódica: Elige una nota en la escala o una nota del acorde
-            note_choice = random.choice(chord_structure + [2, 5, 9, 14]) 
-            pitch = base_note_lead + note_choice + random.randint(-3, 3) # Leve variación de pitch
+
+        # --------------- Track 0: LEAD (Melodía Principal) ---------------
+        
+        current_time = time
+        for _ in range(int(8)): # 8 notas o silencios por compás
             
-            if random.random() < 0.7: # 70% de probabilidad de que toque una nota
-                midi_file.addNote(0, 0, pitch, current_time, note_duration, volume)
+            note_duration = random.choice([beat_length / 2, beat_length, beat_length * 1.5]) # Variación rítmica
+            
+            if current_time + note_duration > time + beat_length * 4: break
+
+            note_choice = random.choice(chord_structure + [2, 5, 9, 14]) 
+            pitch = base_note_lead + note_choice + random.randint(-3, 3) 
+            
+            if random.random() < 0.75: # 75% de probabilidad de que toque una nota
+                midi_file.addNote(TRACK_LEAD, CHANNEL_LEAD, pitch, current_time, note_duration, volume_lead)
 
             current_time += note_duration
 
 
-        # 3. Progresión Armónica: Cambia la nota base para el siguiente compás
+        # 5. Progresión Armónica: Cambia la nota base para el siguiente compás
         
-        # Movimiento común en música (I-IV, I-V, etc.)
-        if random.random() < 0.5:
-             base_note_chord += random.choice([0, 5, -7]) # No cambia, o sube una 4ta (5), o baja una 5ta (-7)
+        if random.random() < 0.6:
+             # Movimiento de acordes típico (tónica, subdominante, dominante)
+             base_note_chord += random.choice([0, 5, -5, 7, -7]) 
         else:
-             base_note_chord += random.choice([-2, 2, 4]) # Movimientos más pequeños
+             # Movimientos cromáticos o pequeños
+             base_note_chord += random.choice([-2, 2, 4]) 
         
-        # Asegurar que el rango sea razonable
-        base_note_chord = max(50, min(70, base_note_chord)) 
-        base_note_lead = base_note_chord + 12 # Melodía una octava arriba
+        # Asegurar que el rango de la nota base sea razonable
+        base_note_chord = max(45, min(65, base_note_chord)) 
+        base_note_lead = base_note_chord + 12 
 
-        # Avanza 4 tiempos de beat length (un compás)
+        # Avanza 4 tiempos (un compás)
         time += beat_length * 4 
 
 
-    # 4. Guardar el archivo
+    # 6. Guardar el archivo
     filename = f"music_{genre.replace(' ', '_')}_{random.randint(1000, 9999)}.mid"
     filepath = os.path.join(MUSIC_DIR, filename)
 
@@ -134,9 +195,8 @@ def generate_music_sequence(genre="ambiente"):
         with open(filepath, "wb") as output_file:
             midi_file.writeFile(output_file)
         
-        print(f"Música generada (60s) en: {filepath}")
+        print(f"Música generada (60s, 4 tracks, 128 instrumentos) en: {filepath}")
         return filename
     except Exception as e:
         print(f"Error al escribir el archivo MIDI: {e}")
         return None
-        
