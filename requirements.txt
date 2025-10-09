@@ -6,7 +6,6 @@ wikipedia
 gunicorn
 Pillow 
 midiutil
-pydub
 lxml
 html5lib
 yt-dlp
