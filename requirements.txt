@@ -9,3 +9,5 @@ midiutil
 lxml
 html5lib
 yt-dlp
+spacy
+es-core-news-sm
