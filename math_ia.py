@@ -18,8 +18,11 @@ GM_INSTRUMENTS = {
     "Synth Lead": 80, "Sawtooth": 81, "Pad Choir": 89, "Pad Warm": 88,
     # Otros
     "Accordion": 21, "Timpani": 47,
-    # Percusión (IDs de instrumentos/kits. El canal 9 es el que define el sonido de percusión)
-    "Standard Kit": 0, "Jazz Kit": 1, "Brush Kit": 8, 
+    # Percusión (CORREGIDO: Se añadió Percussion como clave y kits específicos)
+    "Percussion": 118, # ID genérico para percusión (ej. Tubular Bells o Marimba para Ambience/Clasica)
+    "Standard Kit": 0, 
+    "Jazz Kit": 1, 
+    "Brush Kit": 8, 
 }
 
 # --- Mapeo de Géneros a Parámetros y 4 Instrumentos ESPECÍFICOS ---
@@ -31,7 +34,7 @@ GENRE_MAPPING = {
     "jazz": {"tempo": 95, "chords": [0, 3, 7, 10], "lead": GM_INSTRUMENTS["Sax"], "harmony": GM_INSTRUMENTS["Electric Piano"], "bass": GM_INSTRUMENTS["Acoustic Bass"], "drums": GM_INSTRUMENTS["Jazz Kit"]},
     "electronica": {"tempo": 130, "chords": [0, 7, 12], "lead": GM_INSTRUMENTS["Synth Lead"], "harmony": GM_INSTRUMENTS["Sawtooth"], "bass": GM_INSTRUMENTS["Synth Lead"], "drums": GM_INSTRUMENTS["Standard Kit"]},
     "hip hop": {"tempo": 85, "chords": [0, 3, 7], "lead": GM_INSTRUMENTS["Synth Lead"], "harmony": GM_INSTRUMENTS["Pad Warm"], "bass": GM_INSTRUMENTS["Electric Bass"], "drums": GM_INSTRUMENTS["Standard Kit"]},
-    "ambiente": {"tempo": 60, "chords": [0, 7, 12], "lead": GM_INSTRUMENTS["Pad Choir"], "harmony": GM_INSTRUMENTS["Strings Ensemble"], "bass": GM_INSTRUMENTS["Cello"], "drums": GM_INSTRUMENTS["Percussion"]},
+    "ambiente": {"tempo": 60, "chords": [0, 7, 12], "lead": GM_INSTRUMENTS["Pad Choir"], "harmony": GM_INSTRUMENTS["Strings Ensemble"], "bass": GM_INSTRUMENTS["Cello"], "drums": GM_INSTRUMENTS["Percussion"]}, # Usa "Percussion" corregido
     "clasica": {"tempo": 75, "chords": [0, 4, 7], "lead": GM_INSTRUMENTS["Violin"], "harmony": GM_INSTRUMENTS["Strings Ensemble"], "bass": GM_INSTRUMENTS["Cello"], "drums": GM_INSTRUMENTS["Timpani"]},
 }
 
