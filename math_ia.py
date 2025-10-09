@@ -1,5 +1,5 @@
 # =================================================================
-# math_ia.py (Corregido)
+# math_ia.py
 # Módulo de ejemplo para las operaciones matemáticas o lógicas de PACURE AI
 # =================================================================
 
@@ -91,6 +91,6 @@ if __name__ == '__main__':
     # Prueba con paréntesis (depende de la implementación de 'eval' o parser)
     print(f"(5 + 3) * 2 = {solve_expression('(5 + 3) * 2')}")
 
-    # LÍNEA CORREGIDA (Línea 73 en el archivo original)
-    # El error de sintaxis fue corregido usando comillas dobles internas en lugar de barras invertidas.
+    # LÍNEA CORREGIDA (Línea 73)
+    # Cambiamos \' por " para evitar el error de sintaxis en el f-string.
     print(f"os.system('ls') = {solve_expression('os.system(\"ls\")')}")
