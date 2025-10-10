@@ -1,234 +1,122 @@
-# app.py
-
-from flask import Flask, render_template, request, jsonify, url_for, send_from_directory
-from flask_cors import CORS
-import re
 import os
-import random
 import time
-from werkzeug.utils import secure_filename
+import random
+from midiutil import MIDIFile
+from pydub import AudioSegment # Requiere FFmpeg instalado en el sistema
 
-# Importa el módulo de música personalizado
-from music_ia import (
-    generate_music_sequence, 
-    analyze_audio_file, 
-    get_supported_music_genres, 
-    get_voice_details,
-    MUSIC_DIR
-)
+# Directorio donde se guardará la música generada
+# **IMPORTANTE**: Este directorio debe existir y ser escribible.
+MUSIC_DIR = "generated_music"
+os.makedirs(MUSIC_DIR, exist_ok=True)
 
-# Directorio para archivos subidos temporalmente (asegúrate de que exista)
-UPLOAD_FOLDER = 'uploads'
-ALLOWED_EXTENSIONS = {'mp3', 'mp4', 'wav'}
+# Mapeo de géneros a configuraciones de tempo/clave simuladas
+GENRE_MAPPING = {
+    "pop": {"tempo": 120, "key": 0, "instrument": 0},    # C Mayor
+    "jazz": {"tempo": 90, "key": 2, "instrument": 65},   # D Mayor, Saxofón
+    "rock": {"tempo": 140, "key": 4, "instrument": 33},   # E Mayor, Guitarra eléctrica
+    "electronica": {"tempo": 130, "key": -5, "instrument": 103}, # F Menor, Sintetizador
+    "clasica": {"tempo": 75, "key": 7, "instrument": 41}   # G Mayor, Violín
+}
 
-# --- CONFIGURACIÓN DE FLASK ---
-app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-CORS(app) 
+VOICES = {
+    "pop": "Pop Vocalist - Clear & Bright",
+    "rock": "Rock Singer - Gravelly & Energetic",
+    "jazz": "Jazz Crooner - Smooth & Mellow"
+}
 
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-# ============================================================
-# FUNCIONES DE AYUDA
-# ============================================================
-
-def allowed_file(filename):
-    """Verifica que la extensión del archivo esté permitida."""
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-def handle_greetings(query):
-    """Maneja saludos simples."""
-    greetings = ["hola", "qué tal", "buenos días", "buenas tardes", "que tal"]
-    if any(g in query.lower() for g in greetings):
-        return {
-            "text": "¡Hola! Soy PACURE IA. Puedo **buscar información**, **generar música**, o **analizar archivos de audio** que subas. ¿Cómo te ayudo hoy?",
-            "sources": ["pacureia.dev/greeting"],
-            "imageTopic": "saludo"
-        }
-    return None
-
-def handle_music_creation(query):
+def generate_music_sequence(genre, duration_seconds, voice_type=None):
     """
-    Maneja la lógica de creación de música, incluyendo el comando de voz custom.
+    Simula la generación de una secuencia MIDI basada en el género y duración.
+    Si voice_type es proporcionado, simula la mezcla de voz.
     """
-    query_lower = query.lower().strip()
+    genre_lower = genre.lower().strip()
+    config = GENRE_MAPPING.get(genre_lower)
     
-    # Expresión regular para capturar el género, el valor numérico y la unidad de duración
-    # También busca la frase "con voz" o "voz custom"
-    pattern = r"(?:quiero musica del genero|crear|haz musica)\s+([\w\s]+?)\s+(\d+)\s*(m|hr|h)\b(.*)"
-    match = re.search(pattern, query_lower)
+    if not config:
+        return None # Género no soportado
+
+    # Parámetros MIDI
+    track = 0
+    channel = 0
+    tempo = config['tempo']
+    volume = 100
     
-    if match:
-        genre = match.group(1).strip()
-        duration_value = int(match.group(2))
-        duration_unit_raw = match.group(3).lower()
-        extra_command = match.group(4).strip()
-        
-        wants_voice = "con voz" in extra_command or "voz custom" in extra_command
-        
-        total_duration_seconds = 0
-        
-        if duration_unit_raw in ['h', 'hr']:
-            total_duration_seconds = duration_value * 3600
-        elif duration_unit_raw == 'm':
-            total_duration_seconds = duration_value * 60
-
-        supported_durations_sec = [60, 300, 600, 3600] # 1m, 5m, 10m, 1hr
-
-        if total_duration_seconds not in supported_durations_sec:
-            return {
-                "text": f"**[DURACIÓN NO SOPORTADA]** La duración solicitada no es válida.\n\n"
-                        f"Por favor, elige entre las duraciones soportadas: **1m, 5m, 10m, 60m, o 1hr**.",
-                "sources": ["pacureia.dev/duration_error"],
-                "imageTopic": "error"
-            }
-
-        # Intentamos generar la música
-        voice_details = get_voice_details(genre) if wants_voice else None
-        
-        filename = generate_music_sequence(genre, total_duration_seconds, voice_details)
-        
-        if filename is None:
-            supported_genres = ", ".join(get_supported_music_genres())
-            return {
-                "text": f"**[GÉNERO NO SOPORTADO]** El género '{genre.upper()}' no está en nuestra lista.\n\n"
-                        f"Por favor, intenta con uno de los géneros soportados: **{supported_genres}**.",
-                "sources": ["pacureia.dev/genre_limit"],
-                "imageTopic": "musica_error"
-            }
-
-        file_url = url_for('get_music_file', filename=filename, _external=True)
-        duration_display = f"{total_duration_seconds // 3600} hora(s)" if total_duration_seconds >= 3600 else f"{total_duration_seconds // 60} minuto(s)"
-        
-        voice_message = ""
-        if wants_voice:
-            voice_message = f"\n\n**Voz Custom:** Se ha generado una pista de voz en el estilo **{voice_details}**."
-            
-        return {
-            "text": f"**[MÚSICA GENERADA CON ÉXITO]**\n\n¡Listo! He compuesto una pieza de **género {genre.upper()}** de **{duration_display}**.{voice_message}\n\n**URL de Descarga:** {file_url}",
-            "sources": [file_url],
-            "imageTopic": genre
-        }
-
-    # Mensaje de ayuda si se detectó la intención pero falló la sintaxis
-    if "musica" in query_lower or "crear" in query_lower:
-        return {
-            "text": "**[MODO CREACIÓN MUSICAL - SINTAXIS REQUERIDA]**\n\nPara generar, usa la sintaxis:\n\n**`Quiero musica del genero [el género] [duración] [opcionalmente: con voz]`**\n\n*(Ej: Quiero musica del genero Pop 5m con voz)*\n\n**Duraciones soportadas:** 1m, 5m, 10m, 60m, 1hr.",
-            "sources": ["pacureia.dev/music_init"],
-            "imageTopic": "musica"
-        }
-        
-    return None
-
-# ============================================================
-# RUTAS DE FLASK
-# ============================================================
-
-@app.route('/')
-def index():
-    """Ruta principal para cargar el frontend (asume index.html)."""
-    return render_template('index.html')
-
-@app.route('/generated_music/<filename>')
-def get_music_file(filename):
-    """Ruta para servir el archivo de música generado."""
-    return send_from_directory(MUSIC_DIR, filename)
-
-@app.route('/api/upload_audio', methods=['POST'])
-def upload_and_analyze_audio():
-    """
-    Ruta API para recibir un archivo de audio/video, analizar su estilo
-    y generar una respuesta basada en la intención de replicarlo.
-    """
-    if 'file' not in request.files:
-        return jsonify({"text": "**[ERROR]** No se encontró el archivo subido.", "sources": []}), 400
-
-    file = request.files['file']
+    # Crea el archivo MIDI
+    midi = MIDIFile(1)
+    midi.addTempo(track, 0, tempo)
     
-    if file.filename == '' or not allowed_file(file.filename):
-        return jsonify({"text": "**[ERROR]** Tipo de archivo no permitido. Solo MP3, MP4, y WAV son soportados.", "sources": []}), 400
+    # Generación de notas simple (simulando una melodía)
+    num_beats = int((duration_seconds * tempo) / 60)
+    current_time = 0
+    
+    # Usar una escala simple para simular musicalidad
+    scale = [60, 62, 64, 65, 67, 69, 71] # Escala C Mayor (C4, D4, E4, F4, G4, A4, B4)
+    
+    for _ in range(num_beats // 4): # Iterar para llenar la duración
+        # Generar acordes o melodía simple
+        duration = 1  # Un tiempo por nota/acorde
+        pitch = random.choice(scale)
+        
+        # Añadir una nota principal
+        midi.addNote(track, channel, pitch, current_time, duration, volume)
+        
+        # Simular una segunda voz o acompañamiento (una octava abajo)
+        if random.random() < 0.5:
+             midi.addNote(track, channel, pitch - 12, current_time, duration, volume - 20)
 
+        current_time += duration
+
+    # Generar nombre del archivo
+    timestamp = int(time.time())
+    voice_tag = "_VOZ" if voice_type else ""
+    filename = f"music_{genre_lower}_{duration_seconds}s{voice_tag}_{timestamp}.mid"
+    filepath = os.path.join(MUSIC_DIR, filename)
+    
+    # Guardar el archivo
     try:
-        # Guardar el archivo de forma segura
-        filename = secure_filename(file.filename)
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(filepath)
+        with open(filepath, "wb") as output_file:
+            midi.writeFile(output_file)
         
-        # Simular análisis del archivo
-        analysis_result = analyze_audio_file(filepath)
-        
-        # Eliminar el archivo después del análisis simulado (buena práctica)
-        os.remove(filepath)
-
-        if analysis_result:
-            # Usar los resultados del análisis simulado para generar la música de estilo similar
-            detected_genre = analysis_result['detected_genre']
-            voice_style = analysis_result['voice_style']
-            
-            # Generamos una pista de 5 minutos en el género detectado (simulado)
-            simulated_filename = generate_music_sequence(detected_genre, 300, voice_style)
-            file_url = url_for('get_music_file', filename=simulated_filename, _external=True)
-
-            return jsonify({
-                "text": f"**[ANÁLISIS DE AUDIO COMPLETADO]**\n\n"
-                        f"Hemos analizado tu archivo **'{analysis_result['original_filename']}'**.\n"
-                        f"**Estilo Detectado:** Género {detected_genre.upper()} (Tempo {analysis_result['detected_tempo']} BPM).\n"
-                        f"**Voz Detectada:** {voice_style}.\n\n"
-                        f"He generado una nueva pieza de **5 minutos** con un estilo similar. **URL de Descarga:** {file_url}",
-                "sources": [file_url],
-                "imageTopic": f"musica {detected_genre}"
-            })
-        else:
-            return jsonify({
-                 "text": "**[ERROR DE SISTEMA]** No pude procesar el archivo. Asegúrate de que **FFmpeg** esté correctamente instalado en el servidor para soportar MP3/MP4.", 
-                 "sources": [], 
-                 "imageTopic": "error"
-            }), 500
-            
+        return filename
     except Exception as e:
-        print(f"Error en la ruta /api/upload_audio: {e}")
-        return jsonify({
-            "text": f"**[ERROR FATAL]** Ocurrió un error inesperado durante el procesamiento.", 
-            "sources": [], 
-            "imageTopic": "error"
-        }), 500
+        print(f"Error al escribir el archivo MIDI: {e}")
+        return None
 
-
-@app.route('/api/chat', methods=['POST'])
-def process_query():
-    """Ruta API para procesar la consulta del usuario."""
-    query = request.form.get('query', '').strip()
-
-    if not query:
-        return jsonify({
-            "text": "Tu consulta está vacía. Por favor, escribe lo que deseas buscar o crear.",
-            "sources": ["pacureia.dev"],
-            "imageTopic": "error"
-        }), 400
-
-    # 1. VERIFICACIÓN DE SALUDO (Prioridad 1)
-    greeting_response = handle_greetings(query)
-    if greeting_response: return jsonify(greeting_response)
-
-    # 2. MANEJO DE CREACIÓN MUSICAL Y VOZ (Prioridad 2)
-    music_response = handle_music_creation(query)
-    if music_response: return jsonify(music_response)
-
-    # 3. BÚSQUEDA GENERAL EN LA WEB (Fallback)
-    # Aquí iría tu lógica de búsqueda web o de respuesta genérica
+def analyze_audio_file(filepath):
+    """
+    Simula el análisis profundo de un archivo de audio (MP3/MP4) 
+    para extraer género y estilo para replicar.
     
-    return jsonify({
-        "text": f"**[PACURE IA - BÚSQUEDA GENERAL]**\n\n"
-                f"No detecté un comando de música o de voz custom, así que buscaré sobre **'{query[:30]}...'** en la web. (Esta función debe ser implementada con Google Search Tool)",
-        "sources": ["pacureia.dev/busqueda_general"],
-        "imageTopic": "busqueda"
-    })
+    NOTA: Requiere FFmpeg y librerías de audio/ML reales para un análisis no simulado.
+    """
+    try:
+        # Pydub intenta cargar el archivo
+        audio = AudioSegment.from_file(filepath)
+        duration_ms = len(audio)
+        
+        # Simulación de extracción de características
+        detected_genre = random.choice(list(GENRE_MAPPING.keys()))
+        detected_tempo = random.randint(70, 150)
+        
+        # Simulación de la voz (si es pertinente)
+        voice_style = "Voz Masculina Melódica" if "mp3" in filepath else "Voz Femenina Energética"
+        
+        return {
+            "duration_seconds": duration_ms / 1000,
+            "detected_genre": detected_genre,
+            "detected_tempo": detected_tempo,
+            "voice_style": voice_style,
+            "original_filename": os.path.basename(filepath)
+        }
+    except Exception as e:
+        # Esto atrapará errores si FFmpeg no está instalado
+        print(f"Error al analizar archivo de audio: {e}")
+        return None
 
-# ============================================================
-# INICIALIZACIÓN
-# ============================================================
+def get_supported_music_genres():
+    """Devuelve una lista de géneros soportados."""
+    return [g.title() for g in GENRE_MAPPING.keys()]
 
-if __name__ == '__main__':
-    # Usar puerto 5000 para entorno local de pruebas
-    app.run(debug=True, port=5000)
+def get_voice_details(genre):
+    """Devuelve los detalles de voz simulados para un género."""
+    return VOICES.get(genre.lower().strip(), "Voz Genérica")
