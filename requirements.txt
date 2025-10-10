@@ -1,13 +1,7 @@
 Flask
 Flask-Cors
 requests
-beautifulsoup4
-wikipedia
 gunicorn
 Pillow
 midiutil
-lxml
-html5lib
-yt-dlp
-eof
 pydub
