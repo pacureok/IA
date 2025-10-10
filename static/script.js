@@ -1,8 +1,9 @@
+// script.js
+
 document.addEventListener('DOMContentLoaded', () => {
     // ============================================================
     // 1. ELEMENTOS DEL DOM
     // ============================================================
-    // ... (Elementos del DOM se mantienen iguales) ...
     const sidebar = document.getElementById('sidebar');
     const menuToggle = document.getElementById('menuToggle');
     const sidebarOptionsBtn = document.getElementById('sidebarOptionsBtn');
@@ -16,508 +17,366 @@ document.addEventListener('DOMContentLoaded', () => {
     const toolsMenu = document.getElementById('toolsMenu');
     
     // Elementos de la barra de búsqueda
-    const multiUploadBtn = document.getElementById('multiUploadBtn');
-    const multiFileInput = document.getElementById('multiFileInput');
+    const multiUploadBtn = document.getElementById('multiUploadBtn'); // Se mantiene pero no se usa la lógica
+    const multiFileInput = document.getElementById('multiFileInput'); // Se mantiene pero no se usa la lógica
     const toolsBtn = document.getElementById('toolsBtn');
     const searchInput = document.getElementById('searchInput');
     const searchBtn = document.getElementById('searchBtn');
-    const previewContainer = document.getElementById('imagePreviewContainer');
-    const fileNameDisplay = document.getElementById('fileNameDisplay');
-    const imagePreview = document.getElementById('imagePreview');
-    const removeImageBtn = document.getElementById('removeImageBtn');
-
-    // Elementos TTS
+    const previewContainer = document.getElementById('imagePreviewContainer'); // Se mantiene pero no se usa la lógica
+    const fileNameDisplay = document.getElementById('fileNameDisplay'); // Se mantiene pero no se usa la lógica
+    const imagePreview = document.getElementById('imagePreview'); // Se mantiene pero no se usa la lógica
+    const removeImageBtn = document.getElementById('removeImageBtn'); // Se mantiene pero no se usa la lógica
     const ttsFloatingBtn = document.getElementById('ttsFloatingBtn');
-    const ttsIconSpeaker = document.getElementById('ttsIconSpeaker');
-    const ttsIconPause = document.getElementById('ttsIconPause');
+    
+    // Estado
+    let currentChatId = `chat-${Date.now()}`;
+    let chatHistory = loadHistory(currentChatId);
+    let isAwaitingResponse = false;
 
     // ============================================================
-    // 2. ESTRUCTURA DE DATOS Y ESTADO
-    // ============================================================
-    let currentChatId = null;
-    let chats = [
-        { 
-            id: 1, 
-            title: "Plan de Marketing Digital", 
-            messages: [
-                { type: 'user', text: "Dame un plan de marketing para mi canal de YouTube." },
-                { 
-                    type: 'ia', 
-                    text: "Un excelente plan para un canal de YouTube debe centrarse en la creación de contenido de alta calidad y la optimización SEO. El uso de miniaturas atractivas y títulos optimizados es crucial para el crecimiento. 🚀 ¡A crecer! 😄", 
-                    imageTopic: "marketing digital",
-                    sources: ["youtube.com", "blogmarketing.net", "seo-tools.org"]
-                }
-            ]
-        },
-    ];
-
-    // Variables de estado TTS
-    let isReading = false;
-    let currentUtterance = null; 
-    const synth = window.speechSynthesis;
-
-    // ============================================================
-    // 3. BASE DE CONOCIMIENTO LOCAL SIMULADA
-    // -- ¡ELIMINADA! El procesamiento ahora es responsabilidad de app.py --
+    // 2. UTILIDADES
     // ============================================================
 
-
-    // ============================================================
-    // 4. FUNCIONES DE LECTURA DE VOZ (TTS)
-    // ============================================================
-
-    // ... (Las funciones TTS se mantienen iguales) ...
-    function startTTS(text) {
-        if (!synth) {
-            console.warn("Tu navegador no soporta la API de Web Speech (TTS).");
-            return;
+    function loadHistory(chatId = null) {
+        // Carga la historia de localStorage o la inicializa
+        if (chatId) {
+            currentChatId = chatId;
         }
-        stopTTS();
-        currentUtterance = new SpeechSynthesisUtterance(text);
-        
-        synth.onvoiceschanged = () => {
-            const voices = synth.getVoices();
-            const esVoice = voices.find(voice => voice.lang.startsWith('es-'));
-            if (esVoice) {
-                currentUtterance.voice = esVoice;
-            }
-        };
+        chatHistory = JSON.parse(localStorage.getItem(currentChatId) || '[]');
+        renderHistoryList();
+        renderChatWindow();
+        return chatHistory;
+    }
 
-        if (synth.getVoices().length > 0) {
-            const voices = synth.getVoices();
-            const esVoice = voices.find(voice => voice.lang.startsWith('es-'));
-            if (esVoice) {
-                currentUtterance.voice = esVoice;
-            }
-        }
-        
-        currentUtterance.onstart = () => {
-            isReading = true;
-            ttsFloatingBtn.classList.remove('hidden');
-            ttsIconSpeaker.style.display = 'none';
-            ttsIconPause.style.display = 'block';
-        };
-
-        currentUtterance.onend = () => {
-            stopTTS();
-        };
-
-        synth.speak(currentUtterance);
+    function saveHistory() {
+        localStorage.setItem(currentChatId, JSON.stringify(chatHistory));
+        renderHistoryList();
     }
     
-    function pauseTTS() {
-        if (synth.speaking && !synth.paused) {
-            synth.pause();
-            isReading = false;
-            ttsIconSpeaker.style.display = 'block';
-            ttsIconPause.style.display = 'none';
-        }
-    }
-    
-    function resumeTTS() {
-        if (synth.paused) {
-            synth.resume();
-            isReading = true;
-            ttsIconSpeaker.style.display = 'none';
-            ttsIconPause.style.display = 'block';
-        }
-    }
-    
-    function stopTTS() {
-        if (synth.speaking || synth.paused) {
-            synth.cancel();
-        }
-        isReading = false;
-        currentUtterance = null;
-        ttsFloatingBtn.classList.add('hidden');
-        ttsIconSpeaker.style.display = 'block';
-        ttsIconPause.style.display = 'none';
-    }
-
-
-    // ============================================================
-    // 5. FUNCIONES DE MANEJO DE VISTAS
-    // ============================================================
-
-    // ... (El resto de funciones de vista se mantienen iguales) ...
-    function toggleSidebar() {
-        sidebar.classList.toggle('open');
-        mainContentWrapper.classList.toggle('sidebar-open');
-        document.getElementById('searchSection').style.left = sidebar.classList.contains('open') ? 'var(--sidebar-width)' : '0';
-    }
-
-    function loadHistory() {
-        historyList.innerHTML = '';
-        chats.forEach(chat => {
-            const item = document.createElement('div');
-            item.className = 'history-item';
-            item.dataset.chatId = chat.id;
-            item.innerHTML = `
-                <span>${chat.title.substring(0, 25)}${chat.title.length > 25 ? '...' : ''}</span>
-                <button class="chat-options-dots" aria-label="Opciones de chat"></button>
-            `;
-            
-            item.querySelector('span').addEventListener('click', () => {
-                loadChat(chat.id);
-                if (window.innerWidth <= 1024) { 
-                    toggleSidebar(); 
-                }
-            });
-
-            item.querySelector('.chat-options-dots').addEventListener('click', (e) => {
-                e.stopPropagation(); 
-                showHistoryMenu(e.currentTarget, chat.id);
-            });
-
-            historyList.appendChild(item);
-        });
-        
-        if (chats.length > 0 && currentChatId === null) {
-            loadChat(chats[chats.length - 1].id);
-        }
-    }
-
-    function showHistoryMenu(buttonElement, chatId) {
-        historyOptionsMenu.dataset.chatId = chatId;
-        const rect = buttonElement.getBoundingClientRect();
-        
-        historyOptionsMenu.style.top = `${rect.bottom + 5}px`;
-        historyOptionsMenu.style.left = `${rect.right - historyOptionsMenu.offsetWidth}px`;
-
-        historyOptionsMenu.classList.remove('hidden');
-    }
-    
-    function loadChat(chatId) {
-        currentChatId = chatId;
-        const chat = chats.find(c => c.id === chatId);
-
-        document.querySelectorAll('.history-item').forEach(item => {
-            item.classList.remove('active');
-            if (parseInt(item.dataset.chatId) === chatId) {
-                item.classList.add('active');
-            }
-        });
-        
-        chatWindow.innerHTML = '';
-        stopTTS();
-        
-        if (!chat || chat.messages.length === 0) {
-            chatWindow.innerHTML = `<h1 class="main-title">Hola, <span class="user-name">YouTuber pacure</span></h1>`;
-            return;
-        }
-
-        chat.messages.forEach(msg => {
-            appendMessage(msg);
-        });
-        
-        chatWindow.scrollTop = chatWindow.scrollHeight;
-    }
-
-    function appendMessage(msg) {
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `chat-message chat-${msg.type}`;
-
-        if (msg.type === 'ia') {
-            const avatarDiv = document.createElement('div');
-            avatarDiv.className = 'ia-avatar';
-            avatarDiv.innerHTML = `<img src="/static/imang/imagres.ico" alt="PACURE IA Icon">`;
-            messageDiv.appendChild(avatarDiv);
-        }
-        
-        const textElement = document.createElement('p');
-        textElement.innerHTML = msg.text.replace(/\n/g, '<br>');
-        messageDiv.appendChild(textElement);
-
-        if (msg.type === 'ia') {
-            
-            if (msg.musicUrl) {
-                appendMusicPlayer(msg.musicUrl, messageDiv);
-            }
-            
-            if (msg.imageTopic) {
-                fetchAndDisplayImage(msg.imageTopic, messageDiv); 
-            }
-            
-            const ttsControlsDiv = document.createElement('div');
-            ttsControlsDiv.className = 'tts-controls';
-            
-            const speakBtn = document.createElement('button');
-            speakBtn.textContent = 'Volver a escuchar TTS';
-            speakBtn.addEventListener('click', () => startTTS(msg.text));
-            ttsControlsDiv.appendChild(speakBtn);
-            
-            messageDiv.appendChild(ttsControlsDiv);
-
-
-            if (msg.sources && msg.sources.length > 0) {
-                const sourcesDiv = document.createElement('div');
-                sourcesDiv.className = 'ia-sources';
-                sourcesDiv.innerHTML = `
-                    <div class="ia-sources-icons">
-                        ${msg.sources.map(s => `<img src="https://www.google.com/s2/favicons?domain=${s}&sz=32" alt="${s.substring(0, s.indexOf('.'))}">`).join('')}
-                    </div>
-                    Fuentes consultadas
-                    <svg class="expand-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 15L17 10H7L12 15Z" fill="currentColor"/></svg>
-                `;
-                messageDiv.appendChild(sourcesDiv);
-            }
-            
-            const actionsDiv = document.createElement('div');
-            actionsDiv.className = 'ia-actions';
-            actionsDiv.innerHTML = `
-                 <button class="action-btn" title="Respuesta correcta"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7 13.5L10.5 17L17 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-                 <button class="action-btn" title="Respuesta incorrecta"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="20" height="20"><path d="M17 7L7 17M7 7L17 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-                 <button class="action-btn" title="Rehacer"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21.5 2V8M21.5 8H15.5M21.5 8C19.0348 4.3986 15.176 2 11 2C5.47715 2 1 6.47715 1 12C1 17.5228 5.47715 22 11 22C15.9392 22 20.0461 18.2575 21.0969 13.4357" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-                 <button class="action-btn" title="Compartir y exportar"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="20" height="20"><path d="M4 12V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V12M12 2V15M12 2L8 6M12 2L16 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-                 <button class="action-btn" title="Copiar respuesta"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 6H6C4.89543 6 4 6.89543 4 8V20C4 21.1046 4.89543 22 6 22H16C17.1046 22 18 21.1046 18 20V16M16 2V10M16 10H8V16H16V10ZM16 10L20 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-            `;
-            messageDiv.appendChild(actionsDiv);
-            
-            startTTS(msg.text); 
-        }
-
-        chatWindow.appendChild(messageDiv);
-    }
-    
-    function appendMusicPlayer(musicUrl, messageContainer) {
-        const audioDiv = document.createElement('div');
-        audioDiv.className = 'music-player';
-        audioDiv.innerHTML = `
-            <audio controls>
-                <source src="${musicUrl}" type="audio/mpeg">
-                Tu navegador no soporta el reproductor de audio.
-            </audio>
-            <a href="${musicUrl}" download="pacure_music.mp3" class="download-music-btn">Descargar MP3</a>
-        `;
-        messageContainer.appendChild(audioDiv);
-    }
-    
-    function fetchAndDisplayImage(topic, messageContainer) {
-        // En un entorno real, la URL de la imagen también vendría del backend.
-        const imageUrl = topic.toLowerCase().includes('marketing') 
-            ? "https://media.giphy.com/media/l4FGyFh1q5QO1xVp6/giphy.gif"
-            : "https://via.placeholder.com/300x200.png?text=Imagen+relacionada+con+" + encodeURIComponent(topic); 
-        
-        const imageElement = document.createElement('img');
-        imageElement.src = imageUrl;
-        imageElement.alt = `Imagen relacionada con: ${topic}`;
-        imageElement.className = 'chat-image';
-        
-        messageContainer.appendChild(imageElement);
-    }
-
-
-    // Envío de la consulta (MODIFICADA PARA LLAMAR A FLASK)
-    async function handleNewQuery() {
-        const query = searchInput.value.trim();
-        if (!query) return;
-
-        // 1. Detener TTS
-        stopTTS();
-        
-        // 2. Recolección de archivos adjuntos (FormData)
-        const formData = new FormData();
-        formData.append('query', query);
-        
-        const filesInfo = [];
-        if (multiFileInput.files.length > 0) {
-            for (const file of multiFileInput.files) {
-                // Adjunta el archivo real para el backend de Flask
-                formData.append('files', file); 
-                filesInfo.push({ name: file.name, type: file.type, size: file.size }); 
-            }
-        }
-        
-        // 3. Determinar o crear el chat actual
-        let chatToUpdate = chats.find(c => c.id === currentChatId);
-        if (!chatToUpdate || chatToUpdate.messages.length === 0) {
-            const newId = chats.length > 0 ? chats[chats.length - 1].id + 1 : 1;
-            chatToUpdate = { id: newId, title: query.substring(0, 50), messages: [] };
-            chats.push(chatToUpdate);
-            loadHistory(); 
-            loadChat(newId);
-        }
-
-        // 4. Agrega el mensaje del usuario
-        chatToUpdate.messages.push({ type: 'user', text: query, files: filesInfo });
-        
-        // 5. Muestra mensaje de "buscando y analizando"
-        const typingMessage = { type: 'ia', text: "PACURE IA está buscando y analizando fuentes... 🔎" };
-        chatToUpdate.messages.push(typingMessage);
-        loadChat(chatToUpdate.id);
-        
-        // 6. Llama al backend Flask
-        try {
-            const response = await fetch('/api/chat', {
-                method: 'POST',
-                body: formData 
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const iaData = await response.json();
-            
-            // 7. Reemplaza el mensaje de tipeo con la respuesta real
-            chatToUpdate.messages.pop(); 
-            
-            chatToUpdate.messages.push({ 
-                type: 'ia', 
-                text: iaData.text,
-                imageTopic: iaData.imageTopic,
-                sources: iaData.sources,
-                musicUrl: iaData.musicUrl 
-            });
-            
-        } catch (error) {
-            console.error("Error al comunicarse con el servidor (Flask):", error);
-            chatToUpdate.messages.pop(); 
-            chatToUpdate.messages.push({ 
-                type: 'ia', 
-                text: `Lo siento, el servidor PACURE IA falló al procesar tu solicitud. Error: ${error.message}. Asegúrate de que Flask esté corriendo y la ruta /api/chat sea accesible. 😥` 
-            });
-        }
-        
-        // 8. Recarga la vista y limpia
-        loadChat(chatToUpdate.id); 
+    function newChat() {
+        currentChatId = `chat-${Date.now()}`;
+        chatHistory = [];
+        saveHistory();
+        renderChatWindow();
         searchInput.value = '';
-        clearFileInput();
+    }
+
+    function generateChatTitle(query) {
+        // Genera un título simple para el historial a partir de la primera pregunta.
+        const title = query.length > 30 ? query.substring(0, 30) + '...' : query;
+        return title.replace(/[^a-zA-Z0-9\s]/g, '').trim() || 'Nuevo Chat';
     }
 
     function clearFileInput() {
-        multiFileInput.value = ''; 
+        // Función de limpieza de archivos (ya no usada, pero se mantiene para evitar errores si el HTML llama al evento)
+        multiFileInput.value = '';
         previewContainer.classList.add('hidden');
-        fileNameDisplay.textContent = '';
         imagePreview.src = '';
+        fileNameDisplay.textContent = '';
+        // La lógica de la IA ya no necesita saber sobre archivos.
     }
 
     // ============================================================
-    // 6. MANEJO DE EVENTOS DEL DOM
+    // 3. RENDERIZADO
     // ============================================================
 
-    // ... (El manejo de eventos se mantiene igual) ...
-    menuToggle.addEventListener('click', toggleSidebar);
-    sidebarOptionsBtn.addEventListener('click', toggleSidebar); 
-    
-    ttsFloatingBtn.addEventListener('click', () => {
-        if (isReading) {
-            pauseTTS();
-        } else {
-            resumeTTS();
+    function renderHistoryList() {
+        historyList.innerHTML = '';
+        
+        // Obtener todas las claves del historial y ordenarlas por fecha
+        const historyKeys = Object.keys(localStorage)
+            .filter(key => key.startsWith('chat-'))
+            .sort((a, b) => parseInt(b.split('-')[1]) - parseInt(a.split('-')[1]));
+
+        historyKeys.forEach(key => {
+            const historyData = JSON.parse(localStorage.getItem(key));
+            if (historyData.length > 0) {
+                const query = historyData[0].content;
+                const title = historyData[0].title || generateChatTitle(query);
+                
+                const listItem = document.createElement('li');
+                listItem.className = `history-item ${key === currentChatId ? 'active' : ''}`;
+                listItem.dataset.chatId = key;
+                listItem.innerHTML = `
+                    <span class="chat-title">${title}</span>
+                    <button class="delete-chat-btn" data-chat-id="${key}" aria-label="Eliminar chat">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                `;
+                listItem.addEventListener('click', (e) => {
+                    if (!e.target.closest('.delete-chat-btn')) {
+                        loadHistory(key);
+                    }
+                });
+                historyList.appendChild(listItem);
+            }
+        });
+    }
+
+    function renderChatWindow() {
+        chatWindow.innerHTML = '';
+        if (chatHistory.length === 0) {
+            chatWindow.innerHTML = `
+                <div class="welcome-message">
+                    <h1>🎵 Generador Musical PACURE IA</h1>
+                    <p>Hola! Soy tu asistente de composición. Para crear música, usa el siguiente comando:</p>
+                    <p class="syntax-example">**Quiero musica del genero [Género] [Duración]**</p>
+                    <p class="syntax-details">Ejemplo: <code class="inline-code">Quiero musica del genero Pop 5m</code></p>
+                </div>
+            `;
+            return;
         }
+
+        chatHistory.forEach(message => {
+            const messageDiv = createMessageElement(message.role, message.content, message.sources);
+            chatWindow.appendChild(messageDiv);
+        });
+
+        // Asegura que siempre se desplace hacia abajo después de renderizar
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    function createMessageElement(role, content, sources) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `chat-message ${role}-message`;
+        
+        // Icono
+        const icon = role === 'user' ? 
+            `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 5C13.66 5 15 6.34 15 8C15 9.66 13.66 11 12 11C10.34 11 9 9.66 9 8C9 6.34 10.34 5 12 5ZM12 19.2C9.5 19.2 7.29 17.92 6 15.98C6.03 13.99 10 12.9 12 12.9C14 12.9 17.97 13.99 18 15.98C16.71 17.92 14.5 19.2 12 19.2Z" fill="currentColor"/></svg>` : 
+            `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2ZM15.5 12.5H12V16.5H10V10.5H15.5V12.5Z" fill="currentColor"/></svg>`;
+        
+        const messageContentDiv = document.createElement('div');
+        messageContentDiv.className = 'message-content';
+        
+        // Reemplazar markdown simple (simulación)
+        let htmlContent = content
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // negritas
+            .replace(/\*(.*?)\*/g, '<em>$1</em>') // cursivas
+            .replace(/\n/g, '<br>'); // saltos de línea
+
+        // Manejar el caso de URLs de descarga
+        const downloadUrlMatch = htmlContent.match(/URL de Descarga(?: \(MIDI\))?: (https?:\/\/[^\s<]+)/);
+        if (downloadUrlMatch) {
+            const url = downloadUrlMatch[1];
+            htmlContent = htmlContent.replace(
+                downloadUrlMatch[0],
+                `<br><a href="${url}" target="_blank" class="download-link">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="20" height="20"><path d="M12 16V4M12 16L15 13M12 16L9 13M20 16V20H4V16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    Descargar Archivo MIDI
+                </a>`
+            );
+        }
+
+        messageContentDiv.innerHTML = htmlContent;
+
+        const iconContainer = document.createElement('div');
+        iconContainer.className = 'message-icon';
+        iconContainer.innerHTML = icon;
+
+        messageDiv.appendChild(iconContainer);
+        messageDiv.appendChild(messageContentDiv);
+        
+        // Manejo de fuentes/enlaces
+        if (role !== 'user' && sources && sources.length > 0) {
+            const sourcesDiv = document.createElement('div');
+            sourcesDiv.className = 'message-sources';
+            
+            // Si el primer source es una URL de descarga, no mostramos "Fuentes" genéricas
+            if (!downloadUrlMatch) {
+                 const uniqueSources = [...new Set(sources)].slice(0, 3); // Limita a 3 fuentes únicas
+                 sourcesDiv.innerHTML = '<span class="sources-title">Fuentes:</span> ' +
+                    uniqueSources.map(src => `<a href="${src}" target="_blank" rel="noopener noreferrer">${new URL(src).hostname}</a>`).join(', ');
+                 messageContentDiv.appendChild(sourcesDiv);
+            }
+        }
+
+        return messageDiv;
+    }
+    
+    // ============================================================
+    // 4. ENVÍO DE MENSAJES (LÓGICA CENTRAL)
+    // ============================================================
+
+    async function sendMessage() {
+        if (isAwaitingResponse) return;
+
+        const query = searchInput.value.trim();
+        // const file = multiFileInput.files[0]; // **IGNORADO EN ESTA VERSIÓN**
+        
+        if (!query) {
+            alert("Por favor, introduce un comando musical."); // Usamos alert para simular el mensaje de error, aunque se recomienda un modal personalizado.
+            return;
+        }
+
+        isAwaitingResponse = true;
+        searchInput.disabled = true;
+        searchBtn.disabled = true;
+
+        // 1. Mostrar mensaje del usuario
+        if (chatHistory.length === 0) {
+            chatHistory.push({ role: 'user', content: query, title: generateChatTitle(query) });
+        } else {
+            chatHistory.push({ role: 'user', content: query });
+        }
+        
+        // 2. Mostrar mensaje de carga de la IA
+        const loadingMessage = { role: 'ai', content: "Generando música, por favor espera...", sources: [] };
+        chatHistory.push(loadingMessage);
+        renderChatWindow();
+        saveHistory();
+        
+        // 3. Crear FormData para el backend (solo texto, aunque use FormData)
+        const formData = new FormData();
+        formData.append('query', query);
+        
+        // **IGNORAMOS LA LÓGICA DE ARCHIVOS**
+        
+        try {
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                body: formData,
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.text || 'Error desconocido del servidor');
+            }
+
+            const data = await response.json();
+            
+            // 4. Actualizar el último mensaje con la respuesta real
+            chatHistory.pop(); // Elimina el mensaje de carga
+            chatHistory.push({ 
+                role: 'ai', 
+                content: data.text, 
+                sources: data.sources || [], 
+                imageTopic: data.imageTopic 
+            });
+
+            // 5. Limpieza y guardado
+            searchInput.value = '';
+            // clearFileInput(); // **IGNORADO EN ESTA VERSIÓN**
+            renderChatWindow();
+            saveHistory();
+
+        } catch (error) {
+            console.error('Error en la comunicación con el backend:', error);
+            // 4. Actualizar el último mensaje con el error
+            chatHistory.pop(); // Elimina el mensaje de carga
+            chatHistory.push({ 
+                role: 'ai', 
+                content: `**[ERROR]** No pude generar la música. ${error.message || 'Verifica la consola para más detalles.'}`, 
+                sources: ["pacureia.dev/error"],
+                imageTopic: "error"
+            });
+            renderChatWindow();
+            saveHistory();
+        } finally {
+            isAwaitingResponse = false;
+            searchInput.disabled = false;
+            searchBtn.disabled = false;
+            searchInput.focus();
+        }
+    }
+
+    // ============================================================
+    // 5. MANEJADORES DE EVENTOS
+    // ============================================================
+
+    // Toggle de la barra lateral en móvil
+    menuToggle.addEventListener('click', () => {
+        sidebar.classList.toggle('open');
+        mainContentWrapper.classList.toggle('pushed');
     });
 
-    newChatBtn.addEventListener('click', () => {
-        const newId = chats.length > 0 ? chats[chats.length - 1].id + 1 : 1;
-        const newChat = { id: newId, title: "Nueva Conversación", messages: [] };
-        chats.push(newChat);
-        loadHistory();
-        loadChat(newId);
+    // Cerrar barra lateral al hacer clic en el botón de opciones (para móviles)
+    sidebarOptionsBtn.addEventListener('click', () => {
+        sidebar.classList.remove('open');
+        mainContentWrapper.classList.remove('pushed');
     });
-    
-    searchBtn.addEventListener('click', handleNewQuery);
+
+    // Enviar mensaje con el botón de búsqueda
+    searchBtn.addEventListener('click', sendMessage);
+
+    // Enviar mensaje al presionar Enter en el input
     searchInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
-            handleNewQuery();
+            e.preventDefault();
+            sendMessage();
         }
     });
 
-    document.addEventListener('click', (event) => {
-        if (!toolsMenu.contains(event.target) && event.target !== toolsBtn) {
-            toolsMenu.classList.add('hidden');
-        }
-        if (!historyOptionsMenu.contains(event.target) && !event.target.closest('.chat-options-dots')) {
+    // Nueva conversación
+    newChatBtn.addEventListener('click', newChat);
+    
+    // Abrir/Cerrar menú de historial
+    historyOptionsBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        historyOptionsMenu.classList.toggle('hidden');
+    });
+
+    // Eliminar historial
+    document.getElementById('clearHistoryBtn').addEventListener('click', () => {
+        if (confirm('¿Estás seguro de que quieres borrar todo el historial?')) {
+            Object.keys(localStorage).filter(key => key.startsWith('chat-')).forEach(key => {
+                localStorage.removeItem(key);
+            });
+            newChat();
             historyOptionsMenu.classList.add('hidden');
         }
     });
 
-    historyOptionsMenu.addEventListener('click', (e) => {
-        const option = e.target.closest('.menu-option');
-        const chatId = historyOptionsMenu.dataset.chatId;
-        if (!option) return;
-
-        const action = option.textContent.trim();
-        const chat = chats.find(c => c.id == chatId);
-        
-        if (action === "Borrar") {
-            chats = chats.filter(c => c.id != chatId);
-            loadHistory();
-            loadChat(chats.length > 0 ? chats[chats.length - 1].id : null);
-        } else {
-             alert(`Simulando acción: "${action}" en chat: ${chat.title}`);
+    // Eliminar chat individual
+    historyList.addEventListener('click', (e) => {
+        if (e.target.closest('.delete-chat-btn')) {
+            const chatIdToDelete = e.target.closest('.delete-chat-btn').dataset.chatId;
+            if (confirm('¿Estás seguro de que quieres eliminar este chat?')) {
+                localStorage.removeItem(chatIdToDelete);
+                if (chatIdToDelete === currentChatId) {
+                    newChat();
+                } else {
+                    renderHistoryList();
+                }
+            }
         }
-        
-        historyOptionsMenu.classList.add('hidden');
     });
 
-    toolsBtn.addEventListener('click', function(e) {
-        e.stopPropagation(); 
-        
+    // Cerrar menús contextuales al hacer clic fuera
+    document.addEventListener('click', (e) => {
+        if (!historyOptionsBtn.contains(e.target) && !historyOptionsMenu.contains(e.target)) {
+            historyOptionsMenu.classList.add('hidden');
+        }
+        if (!toolsBtn.contains(e.target) && !toolsMenu.contains(e.target)) {
+            toolsMenu.classList.add('hidden');
+        }
+    });
+
+    // Abrir/Cerrar menú de herramientas rápidas
+    toolsBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
         toolsMenu.classList.toggle('hidden');
-        
-        if (!toolsMenu.classList.contains('hidden')) {
-             const rect = toolsBtn.getBoundingClientRect();
-             toolsMenu.style.bottom = (window.innerHeight - rect.top + 10) + 'px'; 
-             toolsMenu.style.left = (rect.left) + 'px';
-             toolsMenu.style.transform = 'none';
-        }
     });
-    
-    toolsMenu.addEventListener('click', (e) => {
-        const option = e.target.closest('.tool-option');
-        if (!option) return;
 
-        const tool = option.dataset.tool;
-        
-        if (tool === 'upload-single-image') {
-            multiFileInput.setAttribute('accept', 'image/*');
-            multiFileInput.click();
-        } else if (tool === 'music') {
-            searchInput.value = "Crea una música electrónica alegre de 15 segundos.";
+    // Manejar clics en el menú de herramientas rápidas
+    toolsMenu.addEventListener('click', (e) => {
+        const queryType = e.target.dataset.queryType;
+        if (queryType === 'music') {
+            searchInput.value = "Quiero musica del genero Pop 5m";
             searchInput.focus();
-        } else if (tool === 'canvas') {
-             searchInput.value = "Diseña un diagrama de flujo para la aprobación de documentos.";
-             searchInput.focus();
-        } else if (tool === 'excel-word') {
-             searchInput.value = "Genera un resumen ejecutivo de un documento de texto para proyecto Word.";
+        } else if (queryType === 'help') {
+             searchInput.value = "Ayuda de Sintaxis";
              searchInput.focus();
         }
         toolsMenu.classList.add('hidden');
     });
 
-    multiUploadBtn.addEventListener('click', function() {
-        multiFileInput.setAttribute('accept', 'image/*, application/pdf, .doc, .docx, .xls, .xlsx'); 
-        multiFileInput.click();
-    });
-
-    multiFileInput.addEventListener('change', function() {
-        if (this.files.length > 0) {
-            previewContainer.classList.remove('hidden');
-            
-            const file = this.files[0];
-            const otherCount = this.files.length > 1 ? ` (+${this.files.length - 1} archivos)` : '';
-            fileNameDisplay.textContent = file.name + otherCount;
-
-            if (file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    imagePreview.src = e.target.result;
-                };
-                reader.readAsDataURL(file);
-            } else {
-                imagePreview.src = 'https://via.placeholder.com/40x40.png?text=DOC';
-            }
-            
-        } else {
-            clearFileInput();
-        }
-    });
-
+    // **IGNORAMOS la lógica de manejo de archivos de la interfaz**
+    // multiUploadBtn.addEventListener('click', function() { ... });
+    // multiFileInput.addEventListener('change', function() { ... });
     removeImageBtn.addEventListener('click', clearFileInput);
     
     // ============================================================
-    // 7. INICIALIZACIÓN
+    // 6. INICIALIZACIÓN
     // ============================================================
     loadHistory(); 
 });
