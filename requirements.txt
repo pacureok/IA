@@ -10,3 +10,4 @@ lxml
 html5lib
 yt-dlp
 eof
+pydub
